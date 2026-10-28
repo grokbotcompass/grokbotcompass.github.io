@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Compass</title>
+<link rel="manifest" id="mf" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-v23-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="favicon-v23-48.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-v23-apple-180.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+<style>
+.hwarn{display:block;margin:6px 0 8px;padding:10px 12px;border-radius:10px;background:#7f1d1d;color:#fff;border:2px solid #ef4444;font-weight:600;animation:hpulse 1.6s ease-in-out infinite}
+.hbanner{margin:0 0 10px;padding:12px;border-radius:10px;background:#991b1b;color:#fff;border:2px solid #f87171;font-weight:700;animation:hpulse 1.6s ease-in-out infinite}
+@keyframes hpulse{0%,100%{box-shadow:0 0 0 0 #ef444400;opacity:1}50%{box-shadow:0 0 0 6px #ef444466;opacity:.85}}
+@media (prefers-reduced-motion:reduce){.hwarn,.hbanner{animation:none}}
+.hnote{display:block;color:#fca5a5;font-size:.85em;margin:-2px 0 6px 28px}
+.ac{position:relative}.acl{position:absolute;left:0;right:0;top:100%;z-index:2000;background:#1e293b;border:1px solid #334155;border-radius:10px;margin-top:2px;max-height:60vh;overflow:auto;box-shadow:0 8px 24px #0008}
+.acl div{padding:14px 12px;min-height:44px;border-bottom:1px solid #334155;cursor:pointer;line-height:1.25}.acl div:last-child{border-bottom:0}
+.acl div.on,.acl div:active{background:#334155}.acl b{display:block;color:#f1f5f9}.acl small{color:#94a3b8}
+:root{--bg:#0f172a;--card:#1e293b;--fg:#e2e8f0;--mut:#94a3b8;--acc:#38bdf8;--bad:#ef4444;--warn:#f97316;--ok:#86efac}
+[hidden]{display:none!important}*{box-sizing:border-box}body{margin:0;font:16px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--fg);padding:env(safe-area-inset-top) 0 40px}
+header{padding:14px 16px;font-size:22px;font-weight:700}header small{font-weight:400;color:var(--mut);font-size:13px;display:block}
+.card{background:var(--card);margin:10px 12px;padding:14px;border-radius:14px}
+label{display:block;font-size:14px;color:var(--mut);margin:8px 0 4px}
+input[type=text]{width:100%;padding:14px;font-size:16px;border-radius:10px;border:1px solid #334155;background:#0b1220;color:var(--fg)}
+button,.btn{display:inline-block;min-height:48px;padding:12px 16px;font-size:16px;border-radius:10px;border:0;background:#334155;color:var(--fg);margin:4px 4px 4px 0;text-decoration:none;text-align:center}
+button.pri{background:var(--acc);color:#04263a;font-weight:700;width:100%}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+.seg{display:flex}.seg button{flex:1;margin:0;border-radius:0}.seg button:first-child{border-radius:10px 0 0 10px}.seg button:last-child{border-radius:0 10px 10px 0}.seg button.on{background:var(--acc);color:#04263a;font-weight:700}
+label.chk{display:flex;gap:8px;align-items:center;font-weight:400}label.chk input{width:22px;height:22px}input[type=range]{width:100%;height:36px}.val{font-variant-numeric:tabular-nums;color:var(--acc);font-weight:700}
+#map{height:55vh;margin:10px 12px;border-radius:14px;position:relative}
+.mhint{position:absolute;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:#0009;color:#fff;font-size:18px;font-weight:600;text-align:center;padding:20px;pointer-events:none;opacity:0;transition:opacity .25s}.mhint.on{opacity:1}
+.demo{background:#7c2d12;color:#fed7aa;padding:8px 12px;border-radius:10px;font-weight:700;font-size:14px}
+.note{font-size:13px;color:var(--mut)}#status{white-space:pre-wrap;font-size:14px}
+.legend{margin:6px 12px 10px;padding:10px 12px;background:var(--card);border-radius:12px;font-size:14px}.legend b{display:block;margin-bottom:4px}.legend div{display:flex;align-items:center;gap:8px;margin:4px 0}
+.sw{display:inline-block;width:16px;height:16px;border-radius:3px;flex:none}.sws{display:inline-flex;gap:2px;flex:none}.ln{display:inline-block;width:34px;flex:none;height:0}
+details summary{cursor:pointer;color:var(--acc);font-size:14px;padding:8px 0;min-height:36px}#summary{margin-top:8px;font-size:15px}#summary p{margin:6px 0}.warnl{color:#fdba74}
+.cav{margin:4px 12px 14px;font-size:13px;color:var(--mut)}.cav summary{color:var(--mut)}.cav ul{margin:6px 0 0;padding-left:20px}
+textarea{width:100%;font-size:13px;background:#0b1220;color:var(--fg);border-radius:8px;border:1px solid #334155;padding:8px}
+</style>
+</head>
+<body>
+<header>🧭 Compass<small>Route preview with VVI-based area flags</small></header>
+
+<div class="card">
+  <label>Start</label>
+  <button id="locBtn" style="width:100%">📍 Use my location</button>
+  <div class="ac"><input type="text" id="origin" autocomplete="off" placeholder="…or type a start address / place"><div class="acl" id="origin_l" hidden></div></div>
+  <label>Destination</label>
+  <div class="ac"><input type="text" id="dest" autocomplete="off" placeholder="e.g. Waco, TX"><div class="acl" id="dest_l" hidden></div></div>
+  <label>Area type</label>
+  <div class="seg"><button id="mZip" class="on">ZIP codes</button><button id="mTract">Census tracts</button></div>
+  <label>Distance units</label>
+  <div class="seg"><button id="uMi">Miles</button><button id="uKm">Kilometers</button></div>
+</div>
+
+<div class="card">
+  <div class="demo" id="dataBadge" style="background:#14532d;color:#bbf7d0">Source: <a style="color:#bbf7d0" href="https://www.vizient.com/products/vizient-vulnerability-index-public-access" target="_blank" rel="noopener">Vizient VVI 2026 public data</a> (nationwide ZIPs &amp; tracts) <span id="dataStatus">loading…</span></div>
+  <p class="note">Slider 1–10 sets a VVI threshold: threshold = 0.5×(n−5)+1.0, so 1 = −1.0, 5 = +1.0, 10 = +3.5. VVI scores are standard deviations from the national mean. Areas scoring <b>above</b> a threshold are flagged. Scores &gt; 1.0 are considered high.</p>
+  <div id="sliders"></div>
+  <div class="row"><button id="saveTh">💾 Save thresholds</button><button id="resetTh">Reset</button></div>
+  <label>Optional: load your own Public Safety scores (CSV with columns geoid,public_safety)</label>
+  <input type="file" id="csv" accept=".csv,text/csv">
+</div>
+
+<div class="card">
+  <label>Route preferences</label>
+  <label class="chk"><input type="checkbox" id="o_hwyPref" checked> Prefer state &amp; federal highways near flagged areas</label>
+  <label>Highway weight: <span class="val" id="v_hwyWeight"></span></label>
+  <input type="range" id="o_hwyWeight" min="0" max="1" step="0.1" value="0.3">
+  <p class="note">Flagged distance on Interstate, US, and state highways counts at this fraction of flagged distance on local roads (0.3 = 30%).</p>
+  <label>Max extra time for the safer route: <span class="val" id="v_maxExtraMin"></span></label>
+  <input type="range" id="o_maxExtraMin" min="0" max="90" step="5" value="30">
+  <label>Google-style route options</label>
+  <label class="chk"><input type="checkbox" id="o_avoidTolls"> Avoid tolls</label>
+  <label class="chk"><input type="checkbox" id="o_avoidHwy"> Avoid highways</label>
+  <small class="hnote">Not recommended in high-crime areas.</small>
+  <div class="hwarn" id="hwyWarn" role="alert" hidden></div>
+  <label class="chk"><input type="checkbox" id="o_avoidFerry"> Avoid ferries</label>
+  <label>Hard-avoid buffer (openrouteservice)</label>
+  <label class="chk"><input type="checkbox" id="o_hardAvoid"> Hard avoid flagged areas</label>
+  <label>Buffer around flagged areas: <span class="val" id="v_bufferMi"></span></label>
+  <input type="range" id="o_bufferMi" min="0" max="10" step="1" value="4">
+  <label>Optional: your own openrouteservice API key (stored only on this phone)</label>
+  <input type="text" id="orsKey" placeholder="optional, not needed for hard avoid" autocomplete="off">
+  <p class="note" id="orsNote"></p>
+  <p class="note" id="optWarn"></p>
+
+  <div class="row"><button id="saveOpt">💾 Save options</button></div>
+</div>
+
+<div class="card"><button class="pri" id="go">Calculate route</button><div id="msg" class="note" role="status"></div><div id="summary" hidden></div>
+  <details id="det" hidden><summary>Show route details</summary><div id="status" class="note"></div></details></div>
+<div id="map"></div>
+<div class="legend" id="legend"><b>Map key</b>
+  <div><span class="sws"><i class="sw" style="background:#991b1b"></i><i class="sw" style="background:#ef4444"></i><i class="sw" style="background:#f97316"></i></span> Above your safety limit (darker = worse)</div>
+  <div><i class="sw" style="background:#facc15"></i> Elevated, but under your limit</div>
+  <div><i class="sw" style="background:#86efac"></i> Lower risk</div>
+  <div><i class="sw" style="background:#9ca3af"></i> No data</div>
+  <div><i class="ln" style="border-top:4px dashed #6b7280"></i> Fastest route</div>
+  <div><i class="ln" style="border-top:5px solid #2563eb"></i> Safer route</div>
+  <div><i class="ln" style="border-top:5px solid #9333ea"></i> Safer route, hard avoid (only when that option is on)</div>
+  <div><i class="sw" style="background:#22c55e;border-radius:50%"></i> Start <i class="sw" style="background:#ef4444;border-radius:50%;margin-left:10px"></i> Destination <i class="sw" style="background:#eab308;border-radius:50%;margin-left:10px"></i> Waypoint</div>
+</div>
+
+<div class="card" id="out" hidden>
+  <div class="hbanner" id="hwyBanner" role="alert" hidden></div>
+  <label>Route for the link</label>
+  <label class="chk"><input type="radio" name="pick" id="pickA"> <span id="pickAT">Safer route (blue)</span></label>
+  <label class="chk" id="pickHL"><input type="radio" name="pick" id="pickH"> <span id="pickHT">Safer route, hard avoid (purple)</span></label>
+  <label class="chk"><input type="radio" name="pick" id="pickD"> <span id="pickDT">Fastest route (gray dashed)</span></label>
+  <label>1. Navigate in Google Maps</label>
+  <textarea id="gurl" rows="3" readonly></textarea>
+  <div class="row"><a class="btn" id="openG" target="_blank" rel="noopener">Open in Google Maps</a><button id="copyG">Copy link</button></div>
+  <label>2. Shaded overlay for Google My Maps</label>
+  <div class="row"><button id="kml">⬇ Download KML</button><a class="btn" href="https://www.google.com/maps/d/" target="_blank" rel="noopener">Open My Maps</a></div>
+  <p class="note">In My Maps: Create a new map → Import → choose the downloaded .kml file.</p>
+</div>
+
+<details class="cav" id="cav"><summary>Compass shows risk; it can’t guarantee safety. Check your route before driving. ⓘ</summary><ul id="cavList"></ul></details>
+
+<script>
+/* ===== Core logic (no DOM) ===== */
+const DOMAINS=[{k:'public_safety',n:'Public Safety',d:6}];
+/* Distance units: everything is computed in km; only display converts. */
+let UNIT='km';const KM_PER_MI=1.609344;
+const fmtD=(km,dp=1)=>UNIT==='mi'?(km/KM_PER_MI).toFixed(dp)+' mi':(+km).toFixed(dp)+' km';
+const fmtA=(km2,dp=0)=>UNIT==='mi'?(km2/2.589988).toFixed(dp)+' mi²':(+km2).toFixed(dp)+' km²';
+const sliderToScore=n=>0.5*(n-5)+1.0;
+const TIGER={zip:'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/PUMA_TAD_TAZ_UGA_ZCTA/MapServer/1/query',
+             tract:'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/0/query'};
+const OPTS={hwyPref:true,hwyWeight:0.3,maxExtraMin:30,hardAvoid:false,bufferMi:1,orsKey:'',avoidTolls:false,avoidHwy:false,avoidFerry:false};
+/** Classify an OSRM step by ref/name. hwy = Interstate/US/SH/TX/Loop/Spur (FM/RM roads count as normal roads). */
+function classifyStep(st,opts=OPTS){
+  const t=((st.ref||'')+' ; '+(st.name||''));
+  const cls=new Set((st.intersections||[]).flatMap(i=>i.classes||[]));
+  const interstate=/(^|[;\s])I[ -]?\d|Interstate/i.test(t);
+  const us=/(^|[;\s])US[ -]?\d/i.test(t);
+  const sh=/(^|[;\s])(SH|TX|State Highway|Loop|SL|Spur|SS|Beltway|BW)[ -]?\d/i.test(t)||/Loop \d|Spur \d/i.test(t);
+  const toll=cls.has('toll')||/toll|turnpike|chisholm trail parkway|TEXpress|express lane/i.test(t);
+  const motorway=cls.has('motorway')||interstate||/freeway|expressway|tollway|turnpike/i.test(t);
+  const ferry=st.mode==='ferry'||cls.has('ferry');
+  return {hwy:interstate||us||sh,motorway,toll,ferry};}
+function routeSegs(route,opts=OPTS){
+  const segs=[];for(const leg of route.legs||[])for(const st of leg.steps||[]){const c=st.geometry&&st.geometry.coordinates;
+    if(c&&c.length>1)segs.push({c,km:st.distance/1000,...classifyStep(st,opts)});}
+  return segs;}
+function routeViolations(route,opts=OPTS){const v=[];const segs=routeSegs(route,opts);
+  if(opts.avoidTolls&&segs.some(s=>s.toll&&s.km>0.2))v.push('tolls');
+  if(opts.avoidHwy&&segs.some(s=>s.motorway&&s.km>0.5))v.push('highways');
+  if(opts.avoidFerry&&segs.some(s=>s.ferry))v.push('ferries');return v;}
+let realVVI=null; // CSV override: geoid -> {public_safety,...}
+const VVI={zip:null,tract:null};
+function setVVI(mode,j){const f=j.fields,m={};for(const[k,a]of Object.entries(j.data)){const o={};f.forEach((n,i)=>o[n]=a[i]);m[k]=o;}VVI[mode]=m;return Object.keys(m).length;}
+/* Nationwide VVI is split per state (vvi/zip_SS.json, vvi/tract_SS.json, SS = state FIPS) and lazy-loaded for the states a route touches. */
+let VIDX=null;const vviLoaded={};
+function addVVI(mode,j){const f=j.fields,m=VVI[mode]||(VVI[mode]={});let n=0;for(const[k,a]of Object.entries(j.data)){const o={};f.forEach((x,i)=>o[x]=a[i]);m[k]=o;n++;}return n;}
+async function loadVVI(base=''){VIDX=await (await fetch(base+'vvi/index.json')).json();VVI.zip=VVI.zip||{};VVI.tract=VVI.tract||{};return {zipStates:VIDX.zipStates.length,tractStates:VIDX.tractStates.length};}
+/** state FIPS codes for US area GEOIDs: tract GEOID prefix, or ZIP3 -> states from the index */
+function vviStatesFor(geoids,mode){const s=new Set();for(const g of geoids){if(mode==='tract'){if(/^\d{11}$/.test(g))s.add(g.slice(0,2));}
+  else if(/^\d{5}$/.test(g)&&VIDX)for(const x of VIDX.zip3[g.slice(0,3)]||[])s.add(x);}return [...s];}
+async function ensureVVIStates(states,mode,base=''){if(!VIDX)await loadVVI(base);const have=mode==='zip'?VIDX.zipStates:VIDX.tractStates;
+  await Promise.all(states.filter(x=>have.includes(x)).map(x=>{const k=mode+'_'+x;if(!vviLoaded[k])vviLoaded[k]=fetch(base+'vvi/'+k+'.json').then(r=>{if(!r.ok)throw new Error(k+' HTTP '+r.status);return r.json();}).then(j=>addVVI(mode,j)).catch(e=>{delete vviLoaded[k];throw e;});return vviLoaded[k];}));
+  return states;}
+
+function hash(str){let h=2166136261>>>0;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0;}
+  h^=h>>>13;h=Math.imul(h,0x5bd1e995)>>>0;h^=h>>>15;return h>>>0;}
+function mockScore(geoid,dom){return Math.round((hash(geoid+'|'+dom)/4294967295*4-2)*100)/100;}
+/** Single swap-in point for real data. */
+function lookupVVI(geoid,mode){
+  if(realVVI&&realVVI[geoid])return {...realVVI[geoid],nodata:false,src:{public_safety:'your CSV'}};
+  let v=VVI[mode]&&VVI[mode][geoid];const loc=null;
+  if(!v&&mode==='tract'&&VVI.tract&&/^\d{11}$/.test(geoid))v=VVI.tract[geoid.slice(0,9)+'00']; // tract data is pre-crosswalked to 2020 tracts; parent fallback kept for safety
+  if(v||loc){const o={...(v||{public_safety:null,clean_environment:null,overall:null}),nodata:false,src:{public_safety:SRC.vvi,clean_environment:SRC.vvi,overall:SRC.vvi}};
+    if(!v){o.src.clean_environment=o.src.overall=SRC.none;}
+    if(loc){o.public_safety=loc.ps;o.src.public_safety=`${LOCAL.meta.sources[loc.city]} — ${loc.v} violent + ${loc.p} property incidents, ${LOCAL.meta.period}, pop ${loc.pop}`;}
+    return o;}
+  const o={nodata:true,src:{}};for(const d of DOMAINS){o[d.k]=null;o.src[d.k]=SRC.none;}return o;}
+function parseCSV(txt){const lines=txt.trim().split(/\r?\n/);const hdr=lines.shift().split(',').map(s=>s.trim().toLowerCase());
+  const m={};for(const l of lines){const c=l.split(',');const r={};hdr.forEach((h,i)=>r[h]=c[i]&&c[i].trim());
+    if(!r.geoid)continue;m[r.geoid]={public_safety:+r.public_safety};}return m;}
+
+async function geocode(q){
+  const u='https://nominatim.openstreetmap.org/search?format=json&limit=1&viewbox=-106.65,36.5,-93.5,25.84&q='+encodeURIComponent(q);
+  const r=await fetch(u,{headers:{'Accept':'application/json'}});const j=await r.json();
+  if(!j.length)throw new Error('Could not find "'+q+'"');return {lat:+j[0].lat,lon:+j[0].lon,label:j[0].display_name};}
+const PROXY='https://compass-route.grokbotcompass.workers.dev';
+async function osrm(points,alts){
+  const c=points.map(p=>p.lon.toFixed(6)+','+p.lat.toFixed(6)).join(';');
+  const r=await fetch(`${PROXY}/osrm/route/v1/driving/${c}?overview=full&geometries=geojson&steps=true&alternatives=${alts?'true':'false'}`+(points.some(p=>p.brg!=null)?'&bearings='+points.map(p=>p.brg!=null?Math.round((p.brg+360)%360)+',60':'').join(';'):''));
+  const j=await r.json();if(r.status===429){const e=new Error(j.message||'Daily routing limit reached.');e.rateLimited=true;throw e;}
+  if(j.code!=='Ok')throw new Error('OSRM: '+(j.message||j.error||j.code));return j.routes;}
+let BIDX=null,BSTATES=null;const bLoaded={};
+const withBbox=fs=>{for(const f of fs)f.bbox=f.bbox||turf.bbox(f);return fs;};
+async function staticStates(base=''){if(!BSTATES){const g=async u=>{const r=await fetch(base+u);if(!r.ok)throw new Error(u+' HTTP '+r.status);return r.json();};
+  const [i,st]=await Promise.all([g('bounds/index.json'),g('bounds/states.json')]);BIDX=i;BSTATES=withBbox(st.features);}return BSTATES;}
+function staticBounds(mode,st,base=''){const k=mode+'_'+st;if(!bLoaded[k])bLoaded[k]=fetch(base+'bounds/'+k+'.json').then(r=>{if(!r.ok)throw new Error(k+' HTTP '+r.status);return r.json();}).then(j=>withBbox(j.features)).catch(e=>{delete bLoaded[k];throw e;});return bLoaded[k];}
+const rLoaded={};
+/* Census TIGER major roads (S1100 interstates/US, S1200 state routes), per state, lazy */
+function roadFile(st,base=''){if(!rLoaded[st])rLoaded[st]=fetch(base+'roads/roads_'+st+'.json').then(r=>{if(!r.ok)throw new Error('roads '+st+' HTTP '+r.status);return r.json();}).then(j=>{for(const f of j.features)f.bbox=turf.bbox(f);return j.features;}).catch(e=>{delete rLoaded[st];console.warn(e);return [];});return rLoaded[st];}
+async function fetchAreas(line,mode,base=''){
+  const reg=turf.buffer(line,1,{units:'kilometers'});const [w,s,e,n]=turf.bbox(reg);
+  const out=new Map();
+  const mx=(await mxStates([w,s,e,n],base)).filter(f=>{f.bbox=f.bbox||turf.bbox(f);const b=f.bbox;return !(b[0]>e||b[2]<w||b[1]>n||b[3]<s)&&turf.booleanIntersects(f,reg);});
+  for(const f of mx){f.properties.country='MX';out.set('MX'+f.properties.GEOID,f);}
+  const inMX=p=>mx.some(f=>{const b=f.bbox;return p[0]>=b[0]&&p[0]<=b[2]&&p[1]>=b[1]&&p[1]<=b[3]&&turf.booleanPointInPolygon(p,f);});
+  // static Census boundaries (cb_2020 500k, simplified, per state, lazy); TIGERweb below is only a fallback
+  let staticOk=false;
+  try{const sts=(await staticStates(base)).filter(f=>{const b=f.bbox;return !(b[0]>e||b[2]<w||b[1]>n||b[3]<s)&&turf.booleanIntersects(f,reg);}).map(f=>f.properties.STATEFP);
+    const files=await Promise.all(sts.filter(x=>BIDX[mode].includes(x)).map(x=>staticBounds(mode,x,base)));
+    for(const fs of files)for(const f of fs){const b=f.bbox;if(b[0]>e||b[2]<w||b[1]>n||b[3]<s||out.has(f.properties.GEOID))continue;if(turf.booleanIntersects(f,reg)){f.properties.country='US';const g=f.properties.GEOID;if(!f.properties.NAME)f.properties.NAME=mode==='zip'?'ZIP '+g:`Census Tract ${+g.slice(5,9)}${g.slice(9)!=='00'?'.'+g.slice(9):''} (${g})`;out.set(f.properties.GEOID,f);}}
+    staticOk=true;}catch(err){console.warn('static boundaries failed, using TIGERweb',err);}
+  let failed=0,jobs=[];
+  if(!staticOk){
+  // tile large envelopes to avoid server record limits
+  const nx=Math.max(1,Math.ceil((e-w)/0.6)),ny=Math.max(1,Math.ceil((n-s)/0.6));
+  for(let i=0;i<nx;i++)for(let k=0;k<ny;k++){
+    const env=[w+(e-w)*i/nx,s+(n-s)*k/ny,w+(e-w)*(i+1)/nx,s+(n-s)*(k+1)/ny];
+    const cell=turf.bboxPolygon(env);
+    if(!turf.booleanIntersects(cell,reg))continue;
+    if(env[3]<17||env[0]>-60||env[2]<-180)continue; // clearly outside the US/territories
+    if(WGEO&&!WGEO.features.some(c=>c.properties.iso==='USA'&&turf.booleanIntersects(c,cell)))continue;
+    if(mx.length&&[[env[0],env[1]],[env[2],env[1]],[env[0],env[3]],[env[2],env[3]],[(env[0]+env[2])/2,(env[1]+env[3])/2]].every(inMX))continue;
+    const p=new URLSearchParams({geometry:env.join(','),geometryType:'esriGeometryEnvelope',inSR:'4326',spatialRel:'esriSpatialRelIntersects',
+      outFields:'GEOID,NAME',returnGeometry:'true',outSR:'4326',maxAllowableOffset:'0.0015',f:'geojson'});
+    jobs.push(TIGER[mode]+'?'+p);
+  }
+  // TIGERweb: limited concurrency + timeout + retries; failures are counted and reported (previously swallowed silently -> whole route looked "no data")
+  const one=async u=>{for(let t=0;t<3;t++){try{const ac=new AbortController();const to=setTimeout(()=>ac.abort(),30000);
+      const r=await fetch(u,{signal:ac.signal});clearTimeout(to);if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();if(j.error)throw new Error(j.error.message||'error');
+      for(const f of j.features||[]){f.properties.country='US';out.set(f.properties.GEOID,f);}return true;}catch(e){fetchAreas.lastErr=e.message||String(e);await new Promise(r=>setTimeout(r,800*(t+1)));}}return false;};
+  let qi=0;await Promise.all(Array.from({length:Math.min(4,jobs.length)},async()=>{while(qi<jobs.length){const u=jobs[qi++];if(!await one(u))failed++;}}));
+  }
+  const tigerNote=failed?`⚠ Census TIGERweb boundary lookup failed for ${failed} of ${jobs.length} map tiles (${fetchAreas.lastErr}); those areas show no polygons and count as "no data". Check your connection and plan the route again.`:null;
+  try{await ensureVVIStates(vviStatesFor([...out.keys()],mode),mode,base);}catch(e){fetchAreas.vviErr='VVI state data failed to load: '+e.message;}
+  try{const w=await worldAreas(reg,base);for(const f of w.feats)if(!out.has(f.properties.GEOID))out.set(f.properties.GEOID,f);fetchAreas.notes=w.notes;if(tigerNote)w.notes.unshift(tigerNote);if(fetchAreas.vviErr){w.notes.push(fetchAreas.vviErr);fetchAreas.vviErr=null;}}catch(e){fetchAreas.notes=['Worldwide data failed to load: '+e.message];if(tigerNote)fetchAreas.notes.unshift(tigerNote);}
+  return [...out.values()];}
+function annotate(features,mode,th){
+  for(const f of features){const pp=f.properties;const v=pp.wsrc!==undefined?{public_safety:pp.wps,overall:null,clean_environment:null,nodata:pp.wps==null,gran:pp.gran,src:{public_safety:`${pp.wsrc} [${pp.gran}]`,overall:'unavailable outside US/Mexico',clean_environment:'unavailable outside US'}}:pp.country==='MX'?{public_safety:mxPS(pp),overall:pp.ov,clean_environment:null,nodata:pp.ps==null&&pp.ov==null,src:{public_safety:`SESNSP municipal incidence 2025 (${pp.hom??'?'} homicides/100k; max of Mexico-relative score ${pp.ps} and world homicide scale)`,overall:'CONEVAL Índice de Rezago Social 2020',clean_environment:'unavailable for Mexico'}}:lookupVVI(pp.GEOID,mode);f.properties.vvi=v;
+    f.properties.over=v.nodata?[]:DOMAINS.filter(d=>v[d.k]!=null&&v[d.k]>th[d.k]).map(d=>d.n);f.properties.sev=v.nodata?0:DOMAINS.reduce((a,d)=>a+(v[d.k]!=null&&v[d.k]>th[d.k]?v[d.k]-th[d.k]:0),0);f.properties.flag=f.properties.over.length>0;}
+  return features;}
+/* ===== Data sources: local police data (US cities), Mexico (SESNSP/CONEVAL), VVI elsewhere in TX ===== */
+let LOCAL=null,MXIDX=null;const mxCache={};
+const SRC={vvi:'Vizient VVI 2026',none:'no data source'};
+async function loadExtra(base=''){LOCAL=null; // US: VVI for every domain (local police data removed by request)
+  try{MXIDX=await (await fetch(base+'mx/index.json')).json();}catch(e){MXIDX=null;}
+  return {local:LOCAL?Object.keys(LOCAL.zip).length+Object.keys(LOCAL.tract).length:0,mx:MXIDX?MXIDX.states.length:0};}
+async function mxStates(bb,base=''){if(!MXIDX)return [];const out=[];
+  for(const s of MXIDX.states){const b=s.bbox;if(b[0]>bb[2]||b[2]<bb[0]||b[1]>bb[3]||b[3]<bb[1])continue;
+    if(!mxCache[s.ent])mxCache[s.ent]=fetch(base+'mx/mun_'+s.ent+'.json').then(r=>r.json());out.push(...(await mxCache[s.ent]).features);}
+  return out;}
+/** km of a line with no scored area under it: outside every polygon OR inside a polygon with no data (gray) */
+function uncoveredKm(line,features){let km=0;const c=line.geometry.coordinates;const step=Math.max(1,Math.floor(c.length/400));
+  const F=features.filter(f=>!(f.properties.vvi&&f.properties.vvi.nodata));for(const f of F)f.bbox=f.bbox||turf.bbox(f);
+  for(let i=step;i<c.length;i+=step){const m=c[i];if(!F.some(f=>{const b=f.bbox;return m[0]>=b[0]&&m[0]<=b[2]&&m[1]>=b[1]&&m[1]<=b[3]&&turf.booleanPointInPolygon(m,f);}))km+=turf.distance(c[i-step],m);}
+  return km;}
+const MX_ADVISORY='U.S. State Dept Mexico Travel Advisory: Level 2 – Exercise Increased Caution (updated 2026-05-28) due to terrorism, crime and kidnapping; some areas have increased risk. U.S. government employees may not travel between cities after dark, may not drive between Mexican border cities and the interior (limited exceptions), and should avoid traveling alone in remote areas. Check the restricted-areas maps at travel.state.gov before you go.';
+
+/* ===== Worldwide fallback: geoBoundaries ADM1 + UNODC homicide (country) + State Dept advisory (country / named regions) ===== */
+let WORLD=null,WGEO=null;const gbCache={};
+async function loadWorld(base=''){if(!WORLD){WORLD=await (await fetch(base+'world/countries.json')).json();WGEO=await (await fetch(base+'world/countries_geo.json')).json();
+  const ls=Object.values(WORLD.countries).filter(c=>c.hom&&c.hom[0]>0).map(c=>Math.log(c.hom[0]));const mu=ls.reduce((a,b)=>a+b)/ls.length;WORLD.mu=mu;WORLD.sd=Math.sqrt(ls.reduce((a,b)=>a+(b-mu)**2,0)/ls.length);
+  for(const f of WGEO.features)f.bbox=turf.bbox(f);}return WORLD;}
+/** Mexico PS: within-Mexico z understates risk vs the US/world (Mexico ≈ 4× US homicide), so also put the municipal homicide rate on the same world scale used elsewhere; take the higher. */
+function mxPS(pp){if(pp.ps==null)return null;let v=pp.ps;if(WORLD&&pp.hom>0)v=Math.max(v,(Math.log(pp.hom)-WORLD.mu)/WORLD.sd);return Math.round(v*100)/100;}
+const ADV_SCORE={1:-0.5,2:0.5,3:1.5,4:3.0};
+async function gbADM1(iso){if(!gbCache[iso])gbCache[iso]=(async()=>{const m=await (await fetch(`https://www.geoboundaries.org/api/current/gbOpen/${iso}/ADM1/`)).json();
+    const u=m.simplifiedGeometryGeoJSON.replace('https://github.com/wmgeolab/geoBoundaries/raw/','https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/');
+    const g=await (await fetch(u)).json();return {feats:g.features,meta:m};})();return gbCache[iso];}
+function worldScore(iso,admName){const c=WORLD.countries[iso]||{};const a=c.adv;let ps=null,src=[],gran='country-level only';
+  if(c.hom&&c.hom[0]>0){ps=(Math.log(c.hom[0])-WORLD.mu)/WORLD.sd;src.push(`UNODC homicide ${c.hom[0]}/100k (${c.hom[1]})`);}
+  if(a){const s=ADV_SCORE[a.level];if(ps==null||s>ps)ps=s;src.push(`State Dept Level ${a.level} (${a.updated})`);
+    const nm=(admName||'').toLowerCase();for(const L of['4','3']){if(nm.length>3&&(a.regions[L]||[]).some(l=>l.toLowerCase().includes(nm))){ps=Math.max(ps,ADV_SCORE[L]);src.push(`region named in advisory as Level ${L}`);gran='region (State Dept named region)';break;}}}
+  return {ps:ps==null?null:Math.round(ps*100)/100,src:src.join(' + ')||'no data source',gran,adv:a};}
+async function worldAreas(reg,base=''){await loadWorld(base);const bb=turf.bbox(reg);const out=[],notes=[];
+  for(const c of WGEO.features){const iso=c.properties.iso;if(iso==='USA'||iso==='MEX')continue;const b=c.bbox;if(b[0]>bb[2]||b[2]<bb[0]||b[1]>bb[3]||b[3]<bb[1])continue;
+    if(!turf.booleanIntersects(c,reg))continue;
+    let fs=[];try{fs=(await gbADM1(iso)).feats;}catch(e){notes.push(`${c.properties.name}: geoBoundaries unavailable (${e.message}); using country outline.`);fs=[{type:'Feature',properties:{shapeName:c.properties.name},geometry:c.geometry}];}
+    for(const f of fs){f.bbox=f.bbox||turf.bbox(f);const q=f.bbox;if(q[0]>bb[2]||q[2]<bb[0]||q[1]>bb[3]||q[3]<bb[1])continue;if(!turf.booleanIntersects(f,reg))continue;
+      const w=worldScore(iso,f.properties.shapeName);
+      out.push({type:'Feature',bbox:f.bbox,geometry:f.geometry,properties:{GEOID:iso+':'+(f.properties.shapeID||f.properties.shapeName),NAME:`${f.properties.shapeName}, ${c.properties.name}`,country:iso,wps:w.ps,wsrc:w.src,gran:w.gran,adv:w.adv?w.adv.title:null}});}}
+  return {feats:out,notes};}
+
+/* ===== Hard-avoid buffer via openrouteservice ===== */
+const ORS_MAX_AREA_KM2=190, ORS_MAX_EXTENT_KM=19.5; // public API: 200 km² total, 20 km extent per polygon
+/** Build avoid MultiPolygon from flagged areas near `line`, buffered by bufMi, minus endpoint areas/radius, split to ORS limits, ranked by severity. */
+function buildAvoid(line,features,origin,dest,bufMi,already=[]){
+  const bufKm=Math.max(0.02,bufMi*1.609);const notes=[];
+  const endR=Math.max(1.5,bufKm+1);
+  const endCircles=[origin,dest].map(p=>turf.circle([p.lon,p.lat],endR,{units:'kilometers',steps:24}));
+  const isEnd=f=>[origin,dest].some(p=>turf.booleanPointInPolygon([p.lon,p.lat],f));
+  const band=turf.buffer(turf.simplify(line,{tolerance:0.002}),bufKm+3,{units:'kilometers'});
+  const pieces=[];let skippedEnd=0;
+  for(const f of features){if(!f.properties.flag)continue;if(isEnd(f)){skippedEnd++;continue;}
+    if(!turf.booleanIntersects(f,band))continue;
+    let g;try{g=turf.buffer(turf.simplify(f,{tolerance:0.001}),bufKm,{units:'kilometers'});g=turf.intersect(g,band);}catch(e){continue;}
+    if(!g)continue;for(const c of endCircles){try{g=g&&turf.difference(g,c);}catch(e){}}if(!g)continue;
+    // split into grid cells <= extent limit
+    const bb=turf.bbox(g);const dLat=ORS_MAX_EXTENT_KM/111,dLon=ORS_MAX_EXTENT_KM/(111*Math.cos(((bb[1]+bb[3])/2)*Math.PI/180));
+    for(let x=bb[0];x<bb[2];x+=dLon)for(let y=bb[1];y<bb[3];y+=dLat){let p;try{p=turf.intersect(g,turf.bboxPolygon([x,y,Math.min(x+dLon,bb[2]),Math.min(y+dLat,bb[3])]));}catch(e){continue;}
+      if(!p)continue;const polys=p.geometry.type==='Polygon'?[p.geometry.coordinates]:p.geometry.coordinates;
+      for(const pc of polys){const q=turf.polygon(pc);const a=turf.area(q)/1e6;if(a<0.01)continue;
+        const onRoute=turf.booleanIntersects(q,line);pieces.push({q,a,sev:f.properties.sev,id:f.properties.GEOID,pri:(onRoute?10:1)*(0.1+f.properties.sev)});}}}
+  pieces.sort((a,b)=>b.pri-a.pri);
+  const keep=[...already];let area=keep.reduce((s,p)=>s+p.a,0),dropped=0,droppedA=0;
+  for(const p of pieces){if(keep.some(k=>k.id===p.id&&Math.abs(k.a-p.a)<1e-6&&turf.booleanEqual(k.q,p.q)))continue;
+    if(area+p.a>ORS_MAX_AREA_KM2){dropped++;droppedA+=p.a;continue;}keep.push(p);area+=p.a;}
+  if(skippedEnd)notes.push(`${skippedEnd} flagged area(s) containing the start or destination were not blocked (you have to drive in/out of them).`);
+  if(dropped)notes.push(`ORS limits avoid areas to ${fmtA(ORS_MAX_AREA_KM2+10)} total; ${dropped} lower-priority piece(s) (${fmtA(droppedA)}) were left out.`);
+  return {pieces:keep,area,notes,droppedN:dropped,droppedA};}
+function orsBody(origin,dest,pieces,opts){
+  const body={coordinates:[[origin.lon,origin.lat],[dest.lon,dest.lat]],radiuses:[2000,2000],instructions:true,preference:'recommended',units:'m',options:{}};
+  if(pieces.length)body.options.avoid_polygons={type:'MultiPolygon',coordinates:pieces.map(p=>p.q.geometry.coordinates.map(r=>r.map(c=>[+c[0].toFixed(5),+c[1].toFixed(5)])))};
+  const af=[opts.avoidHwy&&'highways',opts.avoidTolls&&'tollways',opts.avoidFerry&&'ferries'].filter(Boolean);if(af.length)body.options.avoid_features=af;
+  if(!Object.keys(body.options).length)delete body.options;return body;}
+async function orsRoute(origin,dest,pieces,opts){
+  const own=!!opts.orsKey,h={'Content-Type':'application/json','Accept':'application/geo+json, application/json'};if(own)h.Authorization=opts.orsKey;
+  const r=await fetch(own?'https://api.openrouteservice.org/v2/directions/driving-car/geojson':PROXY+'/ors/directions',{method:'POST',headers:h,body:JSON.stringify(orsBody(origin,dest,pieces,opts))});
+  const t=await r.text();let j;try{j=JSON.parse(t);}catch(e){throw new Error(`ORS HTTP ${r.status}: ${t.slice(0,200)}`);}
+  if(r.status===429&&!own){const e=new Error(j.message||'Daily hard-avoid limit reached.');e.rateLimited=true;throw e;}
+  if(!r.ok||!j.features)throw new Error(`ORS HTTP ${r.status}: `+((j.error&&(j.error.message||j.error))||j.message||t.slice(0,200)));
+  const f=j.features[0],c=f.geometry.coordinates,seg=f.properties.segments||[];
+  const steps=seg.flatMap(s=>s.steps||[]).map(s=>({name:s.name&&s.name!=='-'?s.name:'',ref:'',distance:s.distance,geometry:{coordinates:c.slice(s.way_points[0],s.way_points[1]+1)}}));
+  return {geometry:{coordinates:c},distance:f.properties.summary.distance,duration:f.properties.summary.duration,legs:[{steps}],ors:true};}
+/** Waypoints sampled from a route so Google Maps follows it (Google dir URLs allow up to 9). */
+function sampleWps(line,n=9){const L=turf.length(line);const out=[];for(let i=1;i<=n;i++){const p=turf.along(line,L*i/(n+1)).geometry.coordinates;out.push({lon:p[0],lat:p[1]});}return out;}
+async function hardAvoid(origin,dest,direct,features,opts,log,base){
+  // ORS limits: 200 km² of avoid area and ~150 km route length per request. So the trip is split into chunks
+  // whose break points sit outside flagged areas (taken from the best soft-avoid route), each with its own budget.
+  const bufMi=opts.bufferMi??1;const baseLine=(base||direct).line;const L=turf.length(baseLine);
+  const flagged=features.filter(f=>f.properties.flag);
+  const inFlag=p=>flagged.some(f=>{const b=f.bbox;return p[0]>=b[0]&&p[0]<=b[2]&&p[1]>=b[1]&&p[1]<=b[3]&&turf.booleanPointInPolygon(p,f);});
+  const n=Math.min(8,Math.max(Math.ceil(L/110),Math.ceil(L/18)));const brk=[[origin.lon,origin.lat]];
+  for(let i=1;i<n;i++){let best=null;for(let dk=0;dk<=Math.min(6,L/n/2)&&!best;dk+=0.5)for(const sg of[1,-1]){const at=L*i/n+sg*dk;if(at<=0.5||at>=L-0.5)continue;
+      const p=turf.along(baseLine,at).geometry.coordinates;if(!inFlag(p)){best=p;break;}}
+    brk.push(best||turf.along(baseLine,L*i/n).geometry.coordinates);}
+  brk.push([dest.lon,dest.lat]);
+  const P=c=>({lon:c[0],lat:c[1]});const coords=[],steps=[];let dist=0,dur=0,blocked=0,blockedA=0,unblocked=0,unblockedA=0;const notes=new Set();
+  log(`Hard avoid: ${n} chunk(s) along the ${base?'best soft-avoid':'fastest'} route (ORS limits each request to ${fmtA(200)} of blocks and about ${fmtD(150,0)}).`);
+  for(let i=0;i<brk.length-1;i++){
+    const a=P(brk[i]),b=P(brk[i+1]);const seg=turf.lineSliceAlong(baseLine,L*i/n,L*(i+1)/n);
+    let pieces=[],r=null,line=seg,bi;
+    for(let it=0;it<2;it++){bi=buildAvoid(line,features,a,b,bufMi,pieces);if(r&&bi.pieces.length===pieces.length)break;pieces=bi.pieces;
+      let use=pieces,got=null;
+      for(let k=0;k<4&&!got;k++){await sleep(1600);try{got=await orsRoute(a,b,use,opts);}catch(e){if(!/could not be found|routable point/i.test(e.message)||!use.length)throw e;
+          const keep=k<2?Math.floor(use.length/2):0;notes.add(`Chunk ${i+1}: no route with all blocks, retried with ${keep} block(s).`);use=use.slice(0,keep);}}
+      if(!got)throw new Error('no ORS route for chunk '+(i+1));r=got;if(use.length<pieces.length){pieces=use;bi.area=use.reduce((s,p)=>s+p.a,0);}line=turf.lineString(r.geometry.coordinates);if(use!==bi.pieces)break;}
+    bi.notes.filter(x=>/start or destination/.test(x)&&(i===0||i===brk.length-2)).forEach(x=>notes.add(x));
+    const left=bi.droppedN?[0,bi.droppedN,bi.droppedA]:null;
+    blocked+=pieces.length;blockedA+=bi.area;if(left){unblocked+=+left[1];unblockedA+=+left[2];}
+    const c=r.geometry.coordinates;coords.push(...(coords.length?c.slice(1):c));steps.push(...r.legs[0].steps);dist+=r.distance;dur+=r.duration;
+    log(`  chunk ${i+1}/${n}: ${pieces.length} block(s), ${fmtA(bi.area)}, ${fmtD(r.distance/1000)}`);}
+  notes.add(`Hard avoid blocked ${blocked} piece(s) (${fmtA(blockedA)})`+(unblocked?`; ${unblocked} lower-priority piece(s) (${fmtA(unblockedA)}) could not be blocked within ORS limits.`:(blocked?'; every flagged area near the route was blocked.':'; nothing could be blocked (the flagged areas contain the start/destination, so they must be driven through).')));
+  return {route:{geometry:{coordinates:coords},distance:dist,duration:dur,legs:[{steps}],ors:true},notes:[...notes],stats:{blocked,blockedA,unblocked,unblockedA,chunks:n}};}
+
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let _lastOsrm=0;
+async function osrmPolite(points,alts){const w=_lastOsrm+350-Date.now();if(w>0)await sleep(w);_lastOsrm=Date.now();
+  for(let i=0;i<3;i++){try{return await osrm(points,alts);}catch(e){if(i===2)throw e;await sleep(1200*(i+1));}}}
+/** Full cost breakdown of a route: flagged km (primary), highway/toll/ferry penalties, time. */
+function exposure(line,features,route,opts=OPTS){
+  let km=0,wkm=0,whwy=0,hwyKm=0,mwKm=0,tollKm=0,ferryKm=0;const hit=new Set();
+  const lb=turf.bbox(line);
+  const flagged=features.filter(f=>{if(!f.properties.flag)return false;const b=f.bbox||(f.bbox=turf.bbox(f));
+    return !(b[0]>lb[2]||b[2]<lb[0]||b[1]>lb[3]||b[3]<lb[1]);});
+  const segs=route&&route.legs?routeSegs(route,opts):[{c:line.geometry.coordinates,hwy:false}];
+  for(const sg of segs){const coords=sg.c;
+    for(let i=1;i<coords.length;i++){const a=coords[i-1],b=coords[i];const d=turf.distance(a,b);
+      if(sg.motorway)mwKm+=d;if(sg.toll)tollKm+=d;if(sg.ferry)ferryKm+=d;
+      const mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+      for(const f of flagged){const bb=f.bbox;if(mid[0]<bb[0]||mid[0]>bb[2]||mid[1]<bb[1]||mid[1]>bb[3])continue;
+        if(turf.booleanPointInPolygon(mid,f)){const sv=d*(0.1+f.properties.sev);km+=d;wkm+=sv;if(sg.hwy){hwyKm+=d;whwy+=sv;}hit.add(f.properties.GEOID);break;}}}}
+  // Highway preference only applies when NOT avoiding highways (avoid-highways always wins).
+  const w=(opts.hwyPref&&!opts.avoidHwy)?opts.hwyWeight:1;
+  const viol=route&&route.legs?routeViolations(route,opts):[];
+  const pen=(opts.avoidHwy?mwKm*0.05:0)+(opts.avoidTolls?tollKm*2:0)+(opts.avoidFerry?ferryKm*5:0);
+  const flagScore=(wkm-whwy)+whwy*w;
+  return {km,wkm,hwyKm,mwKm,tollKm,ferryKm,hwyShare:km?hwyKm/km:0,flagScore,pen,score:flagScore+pen,viol,hit:[...hit]};}
+const MIN_PER_KM=0.1; // 10 extra minutes ~ 1 flagged km in the tie-break score
+function totalScore(c,base){return c.exp.score+Math.max(0,(c.route.duration-base.route.duration)/60)*MIN_PER_KM;}
+/** Point offset perpendicular to the straight origin->dest axis at fraction t, distance km, side +1 (left/north-ish) or -1. */
+function offsetPt(o,d,t,km,side){const a=[o.lon,o.lat],b=[d.lon,d.lat];
+  const p=turf.along(turf.lineString([a,b]),turf.distance(a,b)*t);const brg=turf.bearing(a,b);
+  const q=turf.destination(p,km,brg-90*side).geometry.coordinates;return {lon:q[0],lat:q[1]};}
+function sideName(o,d,side){const brg=turf.bearing([o.lon,o.lat],[d.lon,d.lat])-90*side;const n=((brg%360)+360)%360;
+  return ['north','northeast','east','southeast','south','southwest','west','northwest'][Math.round(n/45)%8];}
+/** Unflagged area centroids near the route, on the side away from flagged clusters. */
+function cleanCentroids(line,features,maxKm){const out=[];
+  const lim=[...features].filter(f=>!f.properties.vvi.nodata).map(f=>f.properties.sev).sort((a,b)=>a-b)[Math.floor(features.length*0.25)]||0;
+  for(const f of features){if(f.properties.vvi.nodata||f.properties.sev>lim)continue;const c=turf.centroid(f).geometry.coordinates;
+    const n=turf.nearestPointOnLine(line,c);const dist=n.properties.dist;if(dist<2||dist>maxKm)continue;
+    out.push({lon:c[0],lat:c[1],loc:n.properties.location,dist,id:f.properties.GEOID});}
+  return out;}
+async function plan(origin,dest,mode,th,log=()=>{},opts=OPTS){
+  const maxExtra=(opts.maxExtraMin??30)*60;const MAX_CALLS=40;let calls=1;const t0=Date.now();
+  log('Routing…');const routes=await osrmPolite([origin,dest],true);
+  const lines=routes.map(r=>turf.lineString(r.geometry.coordinates));
+  log(`Got ${routes.length} route option(s). Fetching ${mode==='zip'?'ZIP':'tract'} boundaries for the corridor…`);
+  // Fetch areas for a wide corridor once (covers detours up to ~30 km off the direct line).
+  const axis=turf.lineString([[origin.lon,origin.lat],[dest.lon,dest.lat]]);
+  const longTrip=turf.length(lines[0])>250;const corrKm=longTrip?12:(mode==='zip'?32:22);
+  const simp=turf.simplify(lines[0],{tolerance:0.005});
+  const corridor=longTrip?turf.buffer(simp,corrKm,{units:'kilometers'}):turf.buffer(axis,corrKm,{units:'kilometers'});
+  const region=longTrip?corridor:turf.bboxPolygon(turf.bbox(turf.featureCollection([corridor,...lines])));
+  await loadWorld(opts.base||'');const features=annotate(await fetchAreas(region,mode,opts.base||''),mode,th);
+  for(const f of features)f.bbox=turf.bbox(f);
+  const mk=(r,wps,label)=>{const l=turf.lineString(r.geometry.coordinates);return {line:l,route:r,wps,label,exp:exposure(l,features,r,opts)};};
+  const cands=routes.map((r,i)=>mk(r,[],i?`OSRM alternative ${i}`:'Fastest route'));
+  const direct=cands[0];
+  let best=[...cands].filter(c=>c.route.duration-direct.route.duration<=maxExtra).sort((a,b)=>totalScore(a,direct)-totalScore(b,direct))[0];
+  log(`Fastest route: ${fmtD(direct.exp.km)} in flagged areas, ${Math.round(direct.route.duration/60)} min.`);
+  const tried=[];
+  const tryWps=async(wps,label)=>{
+    wps=[...wps].sort((p,q)=>turf.nearestPointOnLine(axis,[p.lon,p.lat]).properties.location-turf.nearestPointOnLine(axis,[q.lon,q.lat]).properties.location);
+    if(calls>=MAX_CALLS)return null;
+    try{const rv=await routeVia(origin,wps,dest,MAX_CALLS);if(!rv){log(`${label}: skipped (no usable main-road waypoint, or it doubled back)`);return null;}const r=rv.r;wps=rv.wps;const c=mk(r,wps,label);tried.push(c);
+      const extra=(r.duration-direct.route.duration)/60;
+      log(`${label}: ${fmtD(c.exp.km)} flagged, ${extra>=0?'+':''}${Math.round(extra)} min${c.exp.viol.length?' (uses '+c.exp.viol.join(', ')+')':''}.`);
+      return c;}catch(e){log(`${label}: failed (${e.message})`);return null;}};
+  /* Waypoint snapping: nearest main road (separate, cached lookup budget), then route; trim dead-end spurs / U-turns at waypoints. */
+  let nearCalls=0;const NEAR_MAX=30;const snapCache=new Map();
+  const MAJOR=/\b(I|US|SR|SH|CR|M|FM|RM|Route|Rte|Hwy|Highway|Interstate|State Route|State Highway|Loop|Spur|Beltway|BW)[ -]?\d|Parkway|Pkwy|Expressway|Expy|Freeway|Fwy|Turnpike|Tpke|Pike|Highway|Bypass|Tollway/i;
+  const flagAt=p=>features.some(f=>f.properties.flag&&(()=>{const b=f.bbox;return p[0]>=b[0]&&p[0]<=b[2]&&p[1]>=b[1]&&p[1]<=b[3]&&turf.booleanPointInPolygon(p,f);})());
+  async function snapWp(p){const key=p.lon.toFixed(3)+','+p.lat.toFixed(3);if(snapCache.has(key))return snapCache.get(key);
+    if(nearCalls>=NEAR_MAX)return p;nearCalls++;let out=null;
+    try{const r=await fetch(`${PROXY}/osrm/nearest/v1/driving/${p.lon.toFixed(5)},${p.lat.toFixed(5)}?number=50`);const j=await r.json();
+      const ws=(j.waypoints||[]).filter(w=>w.distance<=1500).map(w=>({lon:w.location[0],lat:w.location[1],name:w.name||'',d:w.distance,fl:flagAt(w.location)}));
+      const pick=ws.filter(w=>MAJOR.test(w.name)&&!w.fl)[0]||ws.filter(w=>w.name&&!w.fl)[0]||ws.filter(w=>!w.fl)[0]||ws[0];
+      out=pick?{lon:pick.lon,lat:pick.lat,road:pick.name}:null;}catch(e){out=p;} // lookup failed: keep the raw point
+    snapCache.set(key,out);return out;}
+  async function snapAll(wps){const o=[];for(const w of wps){const q=await snapWp(w);if(q)o.push(q);}return o;}
+  /** Overlap (km) where the route leaves a waypoint back along the way it came (dead-end spur), and the junction to use instead. */
+  function spurs(r){const out=[];const legs=r.legs||[];
+    for(let i=0;i<legs.length-1;i++){const inC=legs[i].steps.flatMap(s=>s.geometry.coordinates),outC=legs[i+1].steps.flatMap(s=>s.geometry.coordinates);
+      const uturn=(legs[i+1].steps[0]&&legs[i+1].steps[0].maneuver&&legs[i+1].steps[0].maneuver.modifier==='uturn')||legs[i].steps.some(s=>s.maneuver&&s.maneuver.modifier==='uturn');
+      if(inC.length<2||outC.length<2){out.push({i,km:0,uturn});continue;}
+      const tail=turf.lineString(inC.slice(-400));let km=0,j=1,junction=null;
+      for(;j<outC.length;j++){if(turf.pointToLineDistance(outC[j],tail,{units:'kilometers'})>0.04)break;km+=turf.distance(outC[j-1],outC[j]);}
+      if(km>0.15)junction=outC[j-1];out.push({i,km,uturn,junction});}return out;}
+  /** Route through waypoints with snapping + one spur-trimming retry. Returns {r,wps} or null (rejected). */
+  async function routeVia(a,wps,b,budget,noSnap){if(!noSnap)wps=await snapAll(wps);if(!wps.length)return null;
+    for(let t=0;t<2;t++){if(calls>=budget)return null;calls++;let r;try{r=(await osrmPolite([a,...wps,b],false))[0];}catch(e){return null;}
+      const sp=spurs(r),bad=sp.filter(x=>x.km>0.15||x.uturn);if(!bad.length)return {r,wps};
+      if(t===1)return null;let moved=false;wps=wps.map((w,i)=>{const x=sp[i];if(x&&x.junction){moved=true;return {lon:x.junction[0],lat:x.junction[1]};}return w;});
+      if(!moved)return null;}
+    return null;}
+  const accept=c=>c&&c.route.duration-direct.route.duration<=maxExtra&&totalScore(c,direct)<totalScore(best,direct)*0.98;
+  best=direct;
+  /* ===== Local bypasses: cluster flagged stretches on the fastest route and route around each one locally ===== */
+  try{const bp=await localBypasses();if(bp){const c=bp;tried.push(c);if(accept(c))best=c;}}catch(e){log('Local bypasses failed: '+e.message);}
+  async function localBypasses(){
+    const co=direct.line.geometry.coordinates,Ltot=turf.length(direct.line);if(direct.exp.km<0.3)return null;
+    const flagged=features.filter(f=>f.properties.flag);
+    const endF=flagged.filter(f=>[origin,dest].some(p=>turf.booleanPointInPolygon([p.lon,p.lat],f)));
+    const sv=flagged.filter(f=>turf.booleanIntersects(f,direct.line)).map(f=>f.properties.sev).sort((a,b)=>b-a);
+    const wCut=sv.length?sv[Math.floor((sv.length-1)*0.25)]:Infinity;
+    const at=p=>flagged.find(f=>{const b=f.bbox;return p[0]>=b[0]&&p[0]<=b[2]&&p[1]>=b[1]&&p[1]<=b[3]&&turf.booleanPointInPolygon(p,f);});
+    // walk the route: flagged intervals (km along route), skipping unavoidable start/destination areas
+    const iv=[];let cum=0;const step=Math.max(1,Math.floor(co.length/1500));
+    for(let i=step;i<co.length;i+=step){const d=turf.distance(co[i-step],co[i]);const m=[(co[i][0]+co[i-step][0])/2,(co[i][1]+co[i-step][1])/2];const f=at(m);
+      if(f&&!endF.includes(f)&&cum>1.5&&cum<Ltot-1.5){const l=iv[iv.length-1];if(l&&cum-l.b<5){l.b=cum+d;l.km+=d;l.w+=d*(0.1+f.properties.sev);if(f.properties.sev>=wCut)l.wk+=d;l.names.add(f.properties.NAME);}
+        else iv.push({a:cum,b:cum+d,km:d,w:d*(0.1+f.properties.sev),wk:f.properties.sev>=wCut?d:0,names:new Set([f.properties.NAME])});}
+      cum+=d;}
+    const cl=iv.filter(c=>c.km>=0.3).sort((x,y)=>y.w-x.w).slice(0,6).sort((x,y)=>x.a-y.a);
+    if(!cl.length)return null;
+    log(`Local bypasses: ${cl.length} flagged stretch(es) on the fastest route.`);
+    const sliceExp=line=>{let km=0,w=0,wk=0;const c=line.geometry.coordinates;for(let i=1;i<c.length;i++){const d=turf.distance(c[i-1],c[i]);const f=at([(c[i][0]+c[i-1][0])/2,(c[i][1]+c[i-1][1])/2]);if(f&&!endF.includes(f)){km+=d;w+=d*(0.1+f.properties.sev);if(f.properties.sev>=wCut)wk+=d;}}return {km,w,wk};};
+    const P=c=>({lon:c[0],lat:c[1]});const secPerKm=direct.route.duration/Ltot;const acc=[];
+    let ROADS=[];try{const lb=turf.bbox(direct.line);const sts=(await staticStates(opts.base||'')).filter(f=>{const b=f.bbox;return !(b[0]>lb[2]||b[2]<lb[0]||b[1]>lb[3]||b[3]<lb[1])&&turf.booleanIntersects(f,direct.line);}).map(f=>f.properties.STATEFP);
+      ROADS=(await Promise.all(sts.map(x=>roadFile(x,opts.base||'')))).flat();}catch(e){log('Major-road data unavailable: '+e.message);}
+    /** Waypoints ON major roads (interstate/US first, then state routes) that pass around a cluster, skipping the road the route already uses there. */
+    function loopSets(c,brg){if(!ROADS.length)return [];const half=(c.b-c.a)/2;const C=turf.along(direct.line,(c.a+c.b)/2).geometry.coordinates;
+      const rIn=Math.max(3,half*0.6),rOut=Math.max(12,Math.min(25,half+12));const rb=turf.bbox(turf.circle(C,rOut,{units:'kilometers',steps:16}));
+      const slice=turf.lineSliceAlong(direct.line,Math.max(0,c.a-rOut-5),Math.min(Ltot,c.b+rOut+5));const cand=[];
+      for(const f of ROADS){const b=f.bbox;if(b[0]>rb[2]||b[2]<rb[0]||b[1]>rb[3]||b[3]<rb[1])continue;
+        const flat=f.geometry.coordinates.flat();const pts=flat.map((p,i)=>({p,i,d:turf.distance(C,p)})).filter(x=>x.d>=rIn&&x.d<=rOut);if(pts.length<2)continue;
+        const near=pts.filter(x=>turf.pointToLineDistance(x.p,slice,{units:'kilometers'})<0.3).length/pts.length;const clean=pts.filter(x=>!flagAt(x.p));
+        if(near>0.15)continue; // a road the fastest route already uses here
+        for(const side of[1,-1]){const sideOf=x=>{const rel=((turf.bearing(C,x.p)-brg+540)%360)-180;return rel<0?1:-1;};const all=pts.filter(x=>sideOf(x)===side);const cf=all.length?all.filter(x=>!flagAt(x.p)).length/all.length:0;
+          if(all.length<2||cf<0.5)continue;const sp=clean.map(x=>{const rel=((turf.bearing(C,x.p)-brg+540)%360)-180;return {...x,side:rel<0?1:-1,al:x.d*Math.cos(rel*Math.PI/180),perp:Math.abs(x.d*Math.sin(rel*Math.PI/180))};}).filter(x=>x.side===side&&x.perp>=rIn*0.7);
+          if(!sp.length)continue;const mid=sp.reduce((a,x)=>Math.abs(x.al)<Math.abs(a.al)?x:a);
+          const nm=f.properties.n,pr=(/^I-\d/.test(nm)?0:f.properties.m==='S1100'?4:12);const P1=x=>{const a=flat[Math.max(0,x.i-1)],b=flat[Math.min(flat.length-1,x.i+1)];let rb=turf.bearing(a,b);if(Math.abs(((rb-brg+540)%360)-180)>90)rb+=180;return {lon:x.p[0],lat:x.p[1],road:nm,brg:rb};}; // travel direction on the highway, so OSRM picks the right carriageway
+          cand.push({loop:true,road:nm,side,off:mid.d,score:pr+Math.abs(mid.al)*0.3+mid.perp*0.1+(1-cf)*10,w:[P1(mid)]});
+          const e1=sp.reduce((a,x)=>Math.abs(x.al+half*0.7)<Math.abs(a.al+half*0.7)?x:a),e2=sp.reduce((a,x)=>Math.abs(x.al-half*0.7)<Math.abs(a.al-half*0.7)?x:a);
+          if(e1!==e2&&turf.distance(e1.p,e2.p)>2)cand.push({loop:true,road:nm,side,off:mid.d,score:pr+2+Math.abs(mid.al)*0.3+mid.perp*0.1,w:(e1.al<e2.al?[e1,e2]:[e2,e1]).map(P1)});}}
+      cand.sort((x,y)=>x.score-y.score);const seen=new Set(),out=[];for(const x of cand){const k=x.road+x.side+x.w.length;if(seen.has(k))continue;seen.add(k);out.push(x);if(out.length>=5)break;}return out;}
+    for(let k=0;k<cl.length;k++){const c=cl[k];if(calls>=MAX_CALLS-8)break;
+      const nm=[...c.names][0]||'';log(`Checking bypass around flagged area ${k+1} of ${cl.length}${nm?' (near '+nm+')':''}…`);
+      const a=Math.max(0,c.a-5),b=Math.min(Ltot,c.b+5);const A=turf.along(direct.line,a).geometry.coordinates,B=turf.along(direct.line,b).geometry.coordinates;
+      let base=sliceExp(turf.lineSliceAlong(direct.line,a,b)),baseSec=(b-a)*secPerKm,baseM=(b-a)*1000;
+      try{calls++;const r0=(await osrmPolite([P(A),P(B)],false))[0];baseSec=r0.duration;baseM=r0.distance;base=sliceExp(turf.lineString(r0.geometry.coordinates));}catch(e){}/* true local baseline, same snapping as the bypasses */const brg=turf.bearing(A,B);const half=(c.b-c.a)/2;
+      const wp=(t,off,side)=>{let p=turf.destination(turf.along(direct.line,c.a+(c.b-c.a)*t),off,brg-90*side).geometry.coordinates;
+        if(at(p))p=turf.destination(p,4,brg-90*side).geometry.coordinates;return P(p);}; // nudge out of flagged areas toward clean ground
+      const sets=[];for(const off of[Math.min(25,half+3),Math.min(30,half+8)])for(const side of[1,-1])sets.push({side,off,w:[wp(0.5,off,side)]},{side,off,w:[wp(0.2,off,side),wp(0.8,off,side)]});
+      const loops=loopSets(c,brg);if(loops.length)log(`    major roads around it: ${[...new Set(loops.map(x=>x.road))].join(', ')}`);
+      let bestB=null;
+      for(const sx of [...loops,...sets]){if(calls>=MAX_CALLS-6)break;if(!sx.loop&&bestB)break;if(!sx.loop&&sets.indexOf(sx)>=4&&bestB)break;
+        const rv=await routeVia(P(A),sx.w,P(B),MAX_CALLS-6,!!sx.loop);if(!rv){log(`    try ${sx.w.length} wp ${fmtD(sx.off,0)} ${sx.side>0?'left':'right'}${sx.loop?' on '+sx.road:''}: skipped (no main-road waypoint or it doubled back)`);continue;}const r=rv.r;sx.w=rv.wps;
+        if(r.distance>(sx.loop?3:2.2)*baseM){log(`    try ${sx.w.length} wp: rejected (${(r.distance/baseM).toFixed(1)}× the direct length)`);continue;}
+        const e=sliceExp(turf.lineString(r.geometry.coordinates)),extra=r.duration-baseSec;
+        log(`    try ${sx.w.length} wp ${fmtD(sx.off,0)} ${sx.side>0?'left':'right'}${sx.loop?' on '+sx.road:sx.w[0].road?' via '+sx.w[0].road:''}: ${fmtD(e.km)} flagged (was ${fmtD(base.km)}), worst ${fmtD(e.wk)} (was ${fmtD(base.wk)}), ${extra>=0?'+':''}${Math.round(extra/60)} min`);
+        if(e.km<base.km-0.3&&e.wk<=base.wk+0.05&&extra<=maxExtra){const ben=(base.w-e.w)*(sx.loop?1.15:1);if(!bestB||ben>bestB.ben)bestB={wps:sx.w,ben,extra:Math.max(extra,1),e,base,k,road:sx.loop?sx.road:null,near:nm};}}
+      if(bestB){acc.push(bestB);log(`  bypass ${k+1}${bestB.road?' via '+bestB.road:''}: ${fmtD(bestB.base.km)} → ${fmtD(bestB.e.km)} flagged, about +${Math.round(bestB.extra/60)} min`);}
+      else log(`  bypass ${k+1}: no local bypass helped`);}
+    if(!acc.length)return null;
+    let use=[...acc],cand=null;
+    for(let it=0;it<4&&use.length&&calls<MAX_CALLS;it++){calls++;
+      const wps=use.flatMap(x=>x.wps);let r;try{r=(await osrmPolite([origin,...wps,dest],false))[0];}catch(e){break;}
+      cand=mk(r,wps,`local bypasses: ${use.map(x=>(x.road||'local streets')+(x.near?' near '+x.near:'')).join('; ')}`);const extra=(r.duration-direct.route.duration)/60;
+      log(`Stitched ${use.length} bypass(es): ${fmtD(cand.exp.km)} flagged, ${extra>=0?'+':''}${Math.round(extra)} min.`);
+      cand.hwyBypass=use.some(x=>x.road);if(r.duration-direct.route.duration<=maxExtra)break;
+      use.sort((x,y)=>y.ben/y.extra-x.ben/x.extra);use.pop();use.sort((x,y)=>x.k-y.k);cand=null;} // drop the worst benefit-per-minute bypass
+    if(cand&&cand.wps.length>9){cand.gwps=true;cand.wps=sampleWps(cand.line);}
+    return cand;}
+  if(direct.exp.km>0.3||direct.exp.pen>0.5)log('Trying wider detours…');
+  if(direct.exp.km>0.3||direct.exp.pen>0.5){
+    // Round 1: corridor offsets, both sides, several distances, 1-3 waypoints.
+    const shapes=[[0.5],[0.33,0.67],[0.25,0.5,0.75]];
+    for(const dist of(longTrip?[10,30]:[5,10,20,30]))for(const side of[1,-1])for(const ts of(longTrip?[[0.5]]:shapes)){
+      if(dist>=20&&ts.length===3)continue; // keep request count polite
+      const c=await tryWps(ts.map(t=>offsetPt(origin,dest,t,dist,side)),`Detour ${fmtD(dist,0)} ${sideName(origin,dest,side)} (${ts.length} waypoint${ts.length>1?'s':''})`);
+      if(accept(c))best=c;}
+    // Major corridors near DFW (only used if inside the fetched band): SH-114/SH-183 north, I-20 south, SH-121/I-635 far north
+    const CORR=[['SH-183 (Euless/Irving)',[[32.835,-97.10],[32.838,-96.98]]],['SH-114 (Grapevine/DFW)',[[32.92,-97.15],[32.90,-97.02]]],['I-635/SH-121 north',[[32.93,-97.10],[32.91,-96.86]]],
+      ['I-20 (Arlington/Grand Prairie)',[[32.677,-97.12],[32.675,-96.95]]],['I-20 south of Dallas',[[32.66,-97.20],[32.66,-96.88]]],['SH-360/I-20',[[32.68,-97.06]]]];
+    const inBand=p=>turf.booleanPointInPolygon([p.lon,p.lat],corridor);
+    for(const[n,pts]of CORR){const w=pts.map(([la,lo])=>({lat:la,lon:lo}));if(!w.every(inBand))continue;
+      const c=await tryWps(w,'via '+n);if(accept(c))best=c;}
+    // Round 2 (greedy): from the best route so far, pull remaining flagged stretches toward clean area centroids.
+    for(let it=0;it<3&&best.exp.km>0.3;it++){if(best===direct){const b2=[...tried].sort((a,b)=>totalScore(a,direct)-totalScore(b,direct))[0];if(b2)best=b2;}
+      const cc=cleanCentroids(best.line,features,12);if(!cc.length)break;
+      const hits=features.filter(f=>best.exp.hit.includes(f.properties.GEOID));
+      const vOf=id=>{const f=features.find(x=>x.properties.GEOID===id);const v=f.properties.vvi;return DOMAINS.reduce((a,d)=>a+(v[d.k]??0),0);};
+      const scored=cc.map(p=>({p,s:Math.min(...hits.map(h=>turf.distance([p.lon,p.lat],turf.centroid(h))))+3*vOf(p.id)})).sort((a,b)=>a.s-b.s).slice(0,4);
+      let improved=false;
+      for(const {p} of scored){const wps=[...best.wps,{lon:p.lon,lat:p.lat}].slice(-3);
+        const c=await tryWps(wps,`Refine via clean ${mode==='zip'?'ZIP':'tract'} ${p.id}`);if(accept(c)){best=c;improved=true;break;}}
+      if(!improved)break;}
+  }
+  let hard=null,hardErr=null;const notes=[];
+  if(opts.hardAvoid){
+    try{const h=await hardAvoid(origin,dest,direct,features,opts,log,best!==direct?best:null);const c=mk(h.route,sampleWps(turf.lineString(h.route.geometry.coordinates)),`hard avoid, ${fmtD((opts.bufferMi??1)*KM_PER_MI,2).replace(/\.?0+ /,' ')} buffer`);
+      c.gwps=true;c.stats=h.stats;tried.push(c);hard=c;notes.push(...h.notes);
+      if(totalScore(c,direct)<=totalScore(best,direct)||c.exp.km<best.exp.km)best=c;}
+    catch(e){hardErr=e.rateLimited?e.message:'openrouteservice error: '+e.message;notes.push(e.rateLimited?`⚠ ${e.message} Used soft avoidance instead.`:`openrouteservice failed (${e.message}) — fell back to OSRM soft avoidance.`);}}
+  const mxOn=features.some(f=>f.properties.country==='MX'&&turf.booleanIntersects(f,direct.line));
+  if(mxOn)notes.push('⚠ '+MX_ADVISORY);
+  for(const n of fetchAreas.notes||[])notes.push(n);
+  const wc=[...new Set(features.filter(f=>f.properties.wsrc!==undefined&&turf.booleanIntersects(f,direct.line)).map(f=>f.properties.country))];
+  for(const iso of wc){const c=WORLD.countries[iso];notes.push(`⚠ ${c.name}: ${c.adv?c.adv.title+' ('+c.adv.updated+')':'no State Dept advisory matched'}. Public Safety here is ${features.some(f=>f.properties.country===iso&&/region/.test(f.properties.gran||''))?'partly region-level':'COUNTRY-LEVEL ONLY'} (UNODC homicide rate + advisory), so it cannot tell safe and unsafe neighborhoods apart; avoidance cannot help within this country.`);}
+  const unc=uncoveredKm(direct.line,features);if(unc>2)notes.push(`${fmtD(unc,0)} of the route has no data source (no VVI / Mexico / world score there) and is treated as unscored (gray), not safe.`);
+  // Always offer a safer route: the candidate keeping the most distance out of the WORST flagged areas.
+  let pool=[...cands.slice(1),...tried].filter(c=>c&&c!==direct);
+  if(!pool.length){for(const side of[1,-1]){const c=await tryWps([offsetPt(origin,dest,0.5,10,side)],`Detour ${fmtD(10,0)} ${sideName(origin,dest,side)} (best attempt)`);if(c)pool.push(c);}}
+  const sevs=features.filter(f=>f.properties.flag&&turf.booleanIntersects(f,direct.line)).map(f=>f.properties.sev).sort((a,b)=>b-a);
+  const worstCut=sevs.length?sevs[Math.floor((sevs.length-1)*0.25)]:Infinity;
+  const worstF=features.filter(f=>f.properties.flag&&f.properties.sev>=worstCut);
+  const worstKm=c=>{if(c._wk!=null)return c._wk;let k=0;const co=c.line.geometry.coordinates;const lb=turf.bbox(c.line);const F=worstF.filter(f=>{const b=f.bbox;return !(b[0]>lb[2]||b[2]<lb[0]||b[1]>lb[3]||b[3]<lb[1]);});
+    for(let i=1;i<co.length;i++){const m=[(co[i][0]+co[i-1][0])/2,(co[i][1]+co[i-1][1])/2];if(F.some(f=>{const b=f.bbox;return m[0]>=b[0]&&m[0]<=b[2]&&m[1]>=b[1]&&m[1]<=b[3]&&turf.booleanPointInPolygon(m,f);}))k+=turf.distance(co[i-1],co[i]);}return c._wk=k;};
+  worstKm(direct);
+  // A route only counts as "safer" if it strictly lowers risk vs the fastest route: meaningfully less flagged distance
+  // (>=10% or >=0.8 km / 0.5 mi, whichever is larger), no more distance in the worst areas, and within max extra time.
+  const minCut=Math.max(0.1*direct.exp.km,0.8);
+  const qualifies=c=>c&&c!==direct&&c.route.duration-direct.route.duration<=maxExtra&&c.exp.km<=direct.exp.km-minCut&&worstKm(c)<=worstKm(direct)+0.05;
+  // Final pick: major-highway bypasses get a 15% bonus; routes within ~15% flagged distance of each other count as a tie, broken by time.
+  const eff=c=>c.exp.wkm*(c.hwyBypass?0.85:1),effKm=c=>c.exp.km*(c.hwyBypass?0.85:1);
+  const better=(a,b)=>{const x=effKm(a),y=effKm(b);if(Math.max(x,y)<=1.15*Math.min(x,y)+0.05)return a.route.duration<=b.route.duration?a:b;return eff(a)<=eff(b)?a:b;};
+  const pickBest=list=>list.reduce((a,c)=>a?better(a,c):c,null);
+  const avoid=pickBest(pool.filter(c=>c!==hard&&qualifies(c)))||direct;
+  const third=hard&&hard!==avoid&&qualifies(hard)?hard:null;
+  const red=direct.exp.km>0?1-avoid.exp.km/direct.exp.km:0;
+  // Recommendation = lowest weighted exposure among the qualifying safer routes; the fastest route only when none qualify.
+  const opts3=[direct,avoid,third].filter(Boolean);
+  const chosen=pickBest(opts3.filter(c=>c!==direct))||direct;
+  for(const c of opts3){c.worstKm=worstKm(c);c.worstCut=worstCut;}
+  let why='';
+  // Plain-language outcome of hard avoid when it is on
+  let hardMsg=null;
+  if(opts.hardAvoid){const mm=c=>Math.round((c.route.duration-direct.route.duration)/60);
+    if(!hard)hardMsg=`Hard avoid couldn't produce a route: ${hardErr||'no route found'}.`;
+    else if(!third){const r=[];if(hard.route.duration-direct.route.duration>maxExtra)r.push(`it takes +${mm(hard)} min, over your ${opts.maxExtraMin} min limit`);
+      if(hard.exp.km>direct.exp.km-minCut)r.push(`it only cuts flagged distance to ${fmtD(hard.exp.km)} (needs ${fmtD(Math.max(0,direct.exp.km-minCut))} or less)`);
+      if(worstKm(hard)>worstKm(direct)+0.05)r.push(`it drives more distance in the worst areas (${fmtD(worstKm(hard))} vs ${fmtD(worstKm(direct))})`);
+      if(notes.some(n=>/start or destination/.test(n)))r.push('flagged areas around your start or destination can’t be blocked, since you have to drive in or out of them');
+      const st=hard.stats||{};if(st.unblocked)r.push(`openrouteservice's ${fmtA(200)}-per-request limit left ${st.unblocked} flagged piece(s) unblocked`);
+      hardMsg=`Hard avoid found a route (${fmtD(hard.route.distance/1000)}, +${mm(hard)} min, ${fmtD(hard.exp.km)} flagged) but it isn't shown because ${r.join('; ')||'it is not safer'}.`;}
+    if(hardMsg)notes.unshift('⚠ '+hardMsg);}
+  if(avoid===direct&&!third)why=`No safer route found within your max extra time (a safer route must cut flagged distance by at least ${fmtD(minCut)} without adding distance in the worst areas). Try raising the max extra time${opts.hardAvoid?'':' or turning on Hard avoid'}.`+(hardMsg?' '+hardMsg:'');
+  else why=`Recommended: ${chosen===third?'the hard-avoid safer route':'the safer route'}, which has the lowest weighted exposure (worse areas weigh more).`;
+  for(const c of[direct,avoid,hard,third].filter(Boolean))c.near=features.filter(f=>turf.booleanIntersects(f,c.line));
+  log(`Routing calls: ${calls} + ${nearCalls} road lookups (${((Date.now()-t0)/1000).toFixed(0)} s).`);plan.lastCalls=calls+'+'+nearCalls;
+  return {hardMsg,best:chosen,direct,avoid,hard,third,red,cands,tried,why,notes,features:chosen.near,allFeatures:features};}
+function gmapsURL(o,d,wps,opts=OPTS){
+  const f=p=>p.lat.toFixed(6)+','+p.lon.toFixed(6);
+  let u='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(f(o))+'&destination='+encodeURIComponent(f(d));
+  if(wps.length)u+='&waypoints='+encodeURIComponent(wps.map(f).join('|'));const av=[opts.avoidTolls&&'tolls',opts.avoidHwy&&'highways',opts.avoidFerry&&'ferries'].filter(Boolean);
+  if(av.length)u+='&avoid='+encodeURIComponent(av.join(','));return u+'&travelmode=driving';}
+function esc(s){return String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
+function toKML(res,mode,th){
+  const ring=r=>r.map(c=>c[0]+','+c[1]+',0').join(' ');
+  const polys=g=>(g.type==='Polygon'?[g.coordinates]:g.coordinates).map(p=>`<Polygon><outerBoundaryIs><LinearRing><coordinates>${ring(p[0])}</coordinates></LinearRing></outerBoundaryIs>${p.slice(1).map(h=>`<innerBoundaryIs><LinearRing><coordinates>${ring(h)}</coordinates></LinearRing></innerBoundaryIs>`).join('')}</Polygon>`).join('');
+  const pm=(res.allFeatures||res.features).map(f=>{const v=f.properties.vvi;const st=f.properties.flag?(f.properties.sev>=0.75?'high':'flag'):(v.nodata?'nodata':'ok');
+    const desc=DOMAINS.map(d=>`${d.n}: ${v[d.k]}`).join('<br>')+(v.nodata?'<br>No VVI data':'')+(f.properties.flag?'<br>Above your limit: '+f.properties.over.join(', '):'');
+    return `<Placemark><name>${esc(f.properties.NAME)}</name><description><![CDATA[${desc}]]></description><styleUrl>#${st}</styleUrl><MultiGeometry>${polys(f.geometry)}</MultiGeometry></Placemark>`;}).join('\n');
+  const S=(id,c)=>`<Style id="${id}"><LineStyle><color>ff${c}</color><width>1</width></LineStyle><PolyStyle><color>80${c}</color></PolyStyle></Style>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Compass ${mode==='zip'?'ZIP':'Tract'} overlay</name>
+${S('high','4444ef')}${S('flag','1673f9')}${S('ok','acef86')}${S('nodata','9ca3af')}<Style id="route"><LineStyle><color>fff8bd38</color><width>5</width></LineStyle></Style>
+<Folder><name>Areas</name>${pm}</Folder><Placemark><name>Route</name><styleUrl>#route</styleUrl><LineString><tessellate>1</tessellate><coordinates>${res.best.line.geometry.coordinates.map(c=>c[0]+','+c[1]).join(' ')}</coordinates></LineString></Placemark></Document></kml>`;}
+if(typeof module!=='undefined')module.exports={loadExtra,loadVVI,ensureVVIStates,vviStatesFor,buildAvoid,orsBody,orsRoute,sampleWps,uncoveredKm,OPTS,classifyStep,routeSegs,routeViolations,setVVI,VVI,sliderToScore,lookupVVI,parseCSV,osrm,fetchAreas,annotate,exposure,plan,offsetPt,gmapsURL,toKML,DOMAINS,setReal:m=>realVVI=m};
+</script>
+<script>
+/* ===== UI ===== */
+if(typeof document!=='undefined'){
+const $=id=>document.getElementById(id);
+let mode='zip',originPt=null,destPt=null,lastRes=null,lastO,lastD;
+const saved=JSON.parse(localStorage.getItem('compass.th')||'null');
+const sl={};
+for(const d of DOMAINS){const v=saved?.[d.k]??d.d;
+  $('sliders').insertAdjacentHTML('beforeend',`<label>${d.n}: <span class="val" id="v_${d.k}"></span></label><input type="range" min="1" max="10" step="1" value="${v}" id="s_${d.k}">`);
+  sl[d.k]=$('s_'+d.k);const upd=()=>{const s=sliderToScore(+sl[d.k].value);$('v_'+d.k).textContent=`${sl[d.k].value} → ${s>=0?'+':''}${s.toFixed(2)}${s>1?' (high)':s===1?' (high cutoff)':''}`;};
+  sl[d.k].oninput=upd;upd();}
+const th=()=>Object.fromEntries(DOMAINS.map(d=>[d.k,sliderToScore(+sl[d.k].value)]));
+$('saveTh').onclick=()=>{saveAll();st('Thresholds and route options saved.');};
+$('resetTh').onclick=()=>{for(const d of DOMAINS){sl[d.k].value=d.d;sl[d.k].oninput();}};
+const setMode=m=>{mode=m;$('mZip').classList.toggle('on',m==='zip');$('mTract').classList.toggle('on',m==='tract');};
+$('mZip').onclick=()=>setMode('zip');$('mTract').onclick=()=>setMode('tract');
+const savedO=JSON.parse(localStorage.getItem('compass.opts')||'null');if(savedO){if(savedO.maxExtraMin===90)savedO.maxExtraMin=30;Object.assign(OPTS,savedO);} // 90 was the old default
+delete OPTS.fmIsHwy;const OK=['hwyPref','avoidTolls','avoidHwy','avoidFerry','hardAvoid'];
+const HWY_MSG='⚠ High-crime area: staying on main/toll highways is usually safer. Avoiding highways can route you onto rural roads with higher risk.';
+let lastRisk=null;
+function routeRisk(res){const why=[];const c=res.best||res.direct;const near=c.near||res.features||[];
+  if(near.some(f=>f.properties.flag))why.push('flagged areas on the route');
+  else if(near.some(f=>{const v=f.properties.vvi;return v&&DOMAINS.some(d=>v[d.k]!=null&&v[d.k]>=1.0);}))why.push('high-scoring areas on the route');
+  const isos=[...new Set(near.map(f=>f.properties.country).filter(Boolean))];
+  if(isos.includes('MX'))why.push('Mexico');
+  for(const iso of isos){const a=WORLD&&WORLD.countries[iso]&&WORLD.countries[iso].adv;if(a&&a.level>=3&&iso!=='MEX')why.push(`${WORLD.countries[iso].name} advisory Level ${a.level}`);}
+  return why;}
+function hwyWarn(){const on=$('o_avoidHwy').checked&&lastRisk&&lastRisk.length;const t=on?HWY_MSG+` (${lastRisk.join(', ')})`:'';
+  $('hwyWarn').hidden=!on;$('hwyWarn').textContent=t;$('hwyBanner').hidden=!on;$('hwyBanner').textContent=t;}
+const BUF={mi:[0,0.25,0.5,0.75,1,1.5,2,2.5,3,4,5],km:[0,0.25,0.5,1,1.5,2,3,4,5,6,8]};
+function bufMiFromSlider(){const v=BUF[UNIT][+$('o_bufferMi').value]??1;return UNIT==='mi'?v:v/KM_PER_MI;}
+function setBufSlider(){const want=UNIT==='mi'?(OPTS.bufferMi??1):(OPTS.bufferMi??1)*KM_PER_MI;const a=BUF[UNIT];let bi=0;a.forEach((x,i)=>{if(Math.abs(x-want)<Math.abs(a[bi]-want))bi=i;});
+  const el=$('o_bufferMi');el.max=a.length-1;el.value=bi;}
+function renderCaveats(){$('cavList').innerHTML=[
+  `Avoidance is a preference, not a block: Compass tests detours up to ${fmtD(30,0)} to each side of the route and picks the one with the least flagged distance within your max extra time. Only “Hard avoid” actually blocks areas.`,
+  'The free routing server can’t fully exclude tolls, highways, or ferries; Compass penalizes them and adds them to the Google Maps link. Check ⋮ → Route options in Maps before you drive.',
+  'Google Maps may reroute between waypoints, and the link carries the route, not the map coloring (use the KML file in My Maps for that).',
+  'Gray areas have no data and are never flagged. Scores: Vizient VVI 2026 (US), SESNSP/CONEVAL (Mexico), UNODC homicide rates and State Dept advisories elsewhere.'].map(t=>`<li>${t}</li>`).join('');}
+/* Units: saved choice > GPS country (US, Liberia, Myanmar use miles) > browser language region */
+const MI_ISO=['USA','LBR','MMR'],MI_REG=['US','LR','MM'];
+function setUnit(u,explicit){UNIT=u;if(explicit)localStorage.setItem('compass.unit',u);$('uMi').classList.toggle('on',u==='mi');$('uKm').classList.toggle('on',u==='km');
+  setBufSlider();syncO();if(typeof renderText==='function'&&lastRes)renderText();}
+async function unitFromFix(pt){if(localStorage.getItem('compass.unit'))return;try{await loadWorld();const c=WGEO.features.find(f=>{const b=f.bbox;return pt.lon>=b[0]&&pt.lon<=b[2]&&pt.lat>=b[1]&&pt.lat<=b[3]&&turf.booleanPointInPolygon([pt.lon,pt.lat],f);});
+  if(c)setUnit(MI_ISO.includes(c.properties.iso)?'mi':'km',false);}catch(e){}}
+const syncO=()=>{setTimeout(hwyWarn,0);for(const k of OK)OPTS[k]=$('o_'+k).checked;OPTS.hwyWeight=+$('o_hwyWeight').value;OPTS.maxExtraMin=+$('o_maxExtraMin').value;OPTS.bufferMi=bufMiFromSlider();$('v_bufferMi').textContent=BUF[UNIT][+$('o_bufferMi').value]+' '+UNIT;renderCaveats();OPTS.orsKey=$('orsKey').value.trim();
+  $('orsNote').textContent=OPTS.hardAvoid?'Hard avoid: routes with openrouteservice, blocking flagged areas + buffer (start/destination areas excepted). No key needed. Limit: '+fmtA(200)+' of blocked area, so the worst areas on your route are blocked first. Shared daily limits apply; if they run out, Compass uses soft avoidance. '+(OPTS.orsKey?'Using your own key.':'You can optionally add your own free key (openrouteservice.org/dev) to skip the shared limit.'):'';$('v_maxExtraMin').textContent='+'+OPTS.maxExtraMin+' min';
+  $('v_hwyWeight').textContent=OPTS.hwyWeight.toFixed(1)+'×'+(OPTS.hwyPref&&!OPTS.avoidHwy?'':' (off)');
+  $('optWarn').textContent=OPTS.hwyPref&&OPTS.avoidHwy?'“Avoid highways” is on, so the highway preference is turned off and freeway km are penalized.':'';};
+{const reg=((navigator.languages&&navigator.languages[0])||navigator.language||'').split(/[-_]/)[1]||'';UNIT=localStorage.getItem('compass.unit')||(MI_REG.includes(reg.toUpperCase())?'mi':'km');}
+$('uMi').classList.toggle('on',UNIT==='mi');$('uKm').classList.toggle('on',UNIT==='km');setBufSlider();
+$('uMi').onclick=()=>setUnit('mi',true);$('uKm').onclick=()=>setUnit('km',true);
+if(navigator.permissions&&navigator.geolocation&&!localStorage.getItem('compass.unit'))navigator.permissions.query({name:'geolocation'}).then(p=>{if(p.state==='granted')navigator.geolocation.getCurrentPosition(q=>unitFromFix({lat:q.coords.latitude,lon:q.coords.longitude}),()=>{},{timeout:15000,maximumAge:600000});}).catch(()=>{});
+for(const k of OK){$('o_'+k).checked=!!OPTS[k];$('o_'+k).onchange=syncO;}$('o_hwyWeight').value=OPTS.hwyWeight;$('o_hwyWeight').oninput=syncO;$('o_maxExtraMin').value=OPTS.maxExtraMin??30;$('o_maxExtraMin').oninput=syncO;$('o_bufferMi').oninput=syncO;$('orsKey').value=localStorage.getItem('compass.orsKey')||'';$('orsKey').oninput=()=>{localStorage.setItem('compass.orsKey',$('orsKey').value.trim());syncO();};syncO();
+const saveAll=()=>{localStorage.setItem('compass.th',JSON.stringify(Object.fromEntries(DOMAINS.map(d=>[d.k,+sl[d.k].value]))));localStorage.setItem('compass.opts',JSON.stringify({...OPTS,orsKey:undefined}));};
+const st=t=>$('msg').textContent=t;$('saveOpt').onclick=()=>{saveAll();st('Thresholds and route options saved.');};const log=t=>{$('status').textContent+=($('status').textContent?'\n':'')+t;$('det').hidden=false;if(/^Routing|Got \d|Hard avoid:|^Checking bypass|^Trying wider/.test(t))st(t);};
+$('locBtn').onclick=()=>{if(!navigator.geolocation){st('Location not available — type a start address.');$('origin').focus();return;}
+  st('Getting location…');navigator.geolocation.getCurrentPosition(p=>{originPt={lat:p.coords.latitude,lon:p.coords.longitude};window._lastFix=originPt;
+    $('origin').value=`My location (${originPt.lat.toFixed(5)}, ${originPt.lon.toFixed(5)})`;st('Location set.');unitFromFix(originPt);},
+    e=>{originPt=null;$('origin').value='';st('Location unavailable ('+e.message+'). Type a start address instead.'+(location.protocol!=='https:'?' (Location needs HTTPS.)':''));$('origin').focus();},
+    {enableHighAccuracy:true,timeout:15000});};
+/* Type-ahead via Photon (komoot) — Nominatim's usage policy forbids autocomplete. */
+function photonLabel(p){const main=p.name||[p.housenumber,p.street].filter(Boolean).join(' ')||p.city||'';
+  const sub=[p.name&&p.street?[p.housenumber,p.street].filter(Boolean).join(' '):'',p.city&&p.city!==main?p.city:'',p.county&&!p.city?p.county:'',p.state,p.country].filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i).join(', ');return {main,sub};}
+function setupAC(id,isStart){const inp=$(id),list=$(id+'_l');let timer=null,ctl=null,items=[],sel=-1;
+  const close=()=>{list.hidden=true;sel=-1;};
+  const choose=it=>{close();if(it.loc){$('locBtn').onclick();return;}const pt={lat:it.lat,lon:it.lon,label:it.full};
+    inp.value=it.full;if(isStart)originPt=pt;else destPt=pt;};
+  const render=()=>{list.innerHTML='';items.forEach((it,i)=>{const d=document.createElement('div');if(i===sel)d.className='on';
+      d.innerHTML=`<b>${esc(it.main)}</b>${it.sub?`<small>${esc(it.sub)}</small>`:''}`;d.addEventListener('pointerdown',e=>{e.preventDefault();choose(it);});list.appendChild(d);});
+    list.hidden=!items.length;};
+  const locItem={loc:true,main:'📍 Current location',sub:'Use this device’s GPS'};
+  inp.addEventListener('input',()=>{if(isStart)originPt=null;else destPt=null;clearTimeout(timer);const q=inp.value.trim();
+    if(q.length<3){if(ctl)ctl.abort();items=isStart?[locItem]:[];render();return;}
+    timer=setTimeout(async()=>{if(ctl)ctl.abort();ctl=new AbortController();
+      const c=(originPt&&!isStart)?originPt:(window._lastFix||(typeof map!=='undefined'?{lat:map.getCenter().lat,lon:map.getCenter().lng}:null));
+      const u='https://photon.komoot.io/api/?limit=6&q='+encodeURIComponent(q)+(c?`&lat=${c.lat.toFixed(3)}&lon=${c.lon.toFixed(3)}`:'');
+      try{const j=await (await fetch(u,{signal:ctl.signal})).json();if(inp.value.trim()!==q)return;
+        items=(j.features||[]).map(f=>{const l=photonLabel(f.properties);return {...l,full:[l.main,l.sub].filter(Boolean).join(', '),lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]};});
+        if(isStart)items.unshift(locItem);sel=-1;render();}catch(e){if(e.name!=='AbortError'){items=isStart?[locItem]:[];render();}}},300);});
+  inp.addEventListener('focus',()=>{if(isStart&&!inp.value.trim()){items=[locItem];render();}});
+  inp.addEventListener('keydown',e=>{if(list.hidden)return;if(e.key==='ArrowDown'){sel=Math.min(items.length-1,sel+1);render();e.preventDefault();}
+    else if(e.key==='ArrowUp'){sel=Math.max(0,sel-1);render();e.preventDefault();}else if(e.key==='Enter'&&sel>=0){choose(items[sel]);e.preventDefault();}else if(e.key==='Escape')close();});
+  inp.addEventListener('blur',()=>setTimeout(close,150));}
+setupAC('origin',true);setupAC('dest',false);
+$('csv').onchange=async e=>{const f=e.target.files[0];if(!f)return;const m=parseCSV(await f.text());realVVI=m;
+  $('dataBadge').textContent=`CSV loaded: ${Object.keys(m).length} rows override built-in Vizient data`;};
+loadVVI().then(async n=>{const x=await loadExtra();$('dataStatus').textContent=`✓ VVI nationwide (${n.tractStates} states + DC, loaded per state along the route); Mexico: ${x.mx} states of municipalities`;}).catch(e=>{$('dataStatus').textContent='⚠ failed to load VVI data: '+e.message;});
+const TOUCH=L.Browser.mobile||(navigator.maxTouchPoints>0&&matchMedia('(pointer:coarse)').matches);
+const map=L.map('map',{dragging:!TOUCH,scrollWheelZoom:false,tap:false}).setView([39.5,-98.35],4);
+/* Touch: one finger scrolls the page; two fingers pan/zoom the map (Leaflet pinch also pans). Mouse: drag normally; wheel zooms only with Ctrl/⌘ or after clicking the map. */
+{const mc=map.getContainer(),hint=document.createElement('div');hint.className='mhint';mc.appendChild(hint);let ht=null;
+  const show=t=>{hint.textContent=t;hint.classList.add('on');clearTimeout(ht);ht=setTimeout(()=>hint.classList.remove('on'),1200);};
+  if(TOUCH)mc.addEventListener('touchmove',e=>{if(e.touches.length===1)show('Use two fingers to move the map');},{passive:true});
+  mc.addEventListener('wheel',e=>{if(map.scrollWheelZoom.enabled())return;if(e.ctrlKey||e.metaKey){e.preventDefault();map.setZoomAround(map.mouseEventToContainerPoint(e),map.getZoom()+(e.deltaY<0?1:-1));}
+    else show(/Mac/.test(navigator.platform)?'Use ⌘ + scroll to zoom, or click the map first':'Use Ctrl + scroll to zoom, or click the map first');},{passive:false});
+  map.on('click',()=>{if(!TOUCH)map.scrollWheelZoom.enable();});mc.addEventListener('mouseleave',()=>map.scrollWheelZoom.disable());}
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(map);
+let layer=L.layerGroup().addTo(map);
+$('go').onclick=async()=>{
+  try{$('go').disabled=true;st('Calculating…');$('status').textContent='';$('summary').hidden=true;$('det').hidden=true;$('det').open=false;
+    const o=originPt||await geocode($('origin').value.trim()||(()=>{throw new Error('Enter a start or tap Use my location')})());
+    if(!$('dest').value.trim())throw new Error('Enter a destination');
+    const d=destPt||await geocode($('dest').value.trim());
+    syncO();const res=await plan(o,d,mode,th(),log,OPTS);lastRes=res;res.rec=res.best;lastO=o;lastD=d;lastRisk=routeRisk(res);hwyWarn();
+    layer.clearLayers();
+    const T=th();
+    // Color = how bad the area is: gray no data; red/orange over your threshold; yellow high (score ≥ 1.0 = high by VVI convention, or within 0.5 of your threshold) but under it; green only when clearly low.
+    const col=f=>{const p=f.properties,v=p.vvi;const ds=DOMAINS.filter(d=>v[d.k]!=null);if(v.nodata||!ds.length)return '#9ca3af';
+      if(p.flag)return p.sev>=1.5?'#991b1b':p.sev>=0.75?'#ef4444':'#f97316';
+      const mx=Math.max(...ds.map(d=>v[d.k])),gap=Math.min(...ds.map(d=>T[d.k]-v[d.k]));return (mx>=1.0||gap<0.5)?'#facc15':'#86efac';};
+    L.geoJSON(turf.featureCollection(res.allFeatures),{style:f=>({color:col(f),fillColor:col(f),weight:1,fillOpacity:f.properties.flag?0.5:0.3}),
+      onEachFeature:(f,l)=>{const v=f.properties.vvi;l.bindPopup(`<b>${esc(f.properties.NAME)}</b><br>`+DOMAINS.map(x=>`${x.n}: ${v[x.k]??'—'} <small>(${esc((v.src||{})[x.k]||'')})</small>`).join('<br>')+(v.nodata?'<br><i>No data source for this area</i>':'')+(f.properties.flag?`<br><b>Above your limit</b> by ${f.properties.sev.toFixed(2)}`:''));}}).addTo(layer);
+    const D=res.direct,A=res.avoid,H=res.third;
+    const dl=L.geoJSON(D.line,{style:{color:'#6b7280',weight:5,dashArray:'8 6'}}).addTo(layer);
+    const hl=H?L.geoJSON(H.line,{style:{color:'#9333ea',weight:5}}).addTo(layer):null;
+    const al=A!==D?L.geoJSON(A.line,{style:{color:'#2563eb',weight:6}}).addTo(layer):dl;
+    [o,...(A.gwps?[]:A.wps),d].forEach((p,i,a)=>L.circleMarker([p.lat,p.lon],{radius:8,color:'#fff',fillColor:i===0?'#22c55e':i===a.length-1?'#ef4444':'#eab308',fillOpacity:1}).addTo(layer));
+    map.fitBounds(L.featureGroup([dl,al,hl].filter(Boolean)).getBounds(),{padding:[20,20]});
+    log('\n— Result —\n'+renderText(true));
+    $(res.best===A&&A!==D?'pickA':res.best===H?'pickH':'pickD').checked=true;pick();
+    st('');
+  }catch(e){st('⚠ '+e.message);}finally{$('go').disabled=false;}};
+function renderText(full){const res=lastRes,D=res.direct,A=res.avoid,H=res.third,T=th();const fm=s=>Math.round(s/60),dk=m=>fmtD(m/1000);
+  const pct=c=>D.exp.km>0?Math.round((c.exp.km/D.exp.km-1)*100):0;
+  const desc=(n,c)=>{if(c===D)return `${n}: ${dk(c.route.distance)}, ${fm(c.route.duration)} min, ${fmtD(c.exp.km)} in flagged areas (${fmtD(c.worstKm)} in the worst areas)`;
+    const dt=fm(c.route.duration-D.route.duration),saved=D.worstKm-c.worstKm,p=pct(c);
+    return `${n}: ${dk(c.route.distance)}, ${fm(c.route.duration)} min (${dt>=0?'+':''}${dt} min), ${fmtD(c.exp.km)} in flagged areas; ${saved>=0.1?`avoids ${fmtD(saved)} of the worst areas`:saved<=-0.1?`${fmtD(-saved)} MORE in the worst areas`:'same distance in the worst areas'}, flagged distance ${p>0?p+'% higher':p<0?(-p)+'% lower':'about the same'}`;};
+  $('pickAT').textContent=A===D?'No safer route found within your max extra time':desc('Safer route (blue)',A);
+  $('pickDT').textContent=desc('Fastest route (gray dashed)',D);
+  $('pickHL').hidden=!H;if(H)$('pickHT').textContent=desc('Safer route, hard avoid (purple)',H);
+  $('pickA').disabled=A===D;$('pickA').closest('label').hidden=A===D;
+  const nm=c=>c===D?'Fastest route':c===A?'Safer route':'Safer route (hard avoid)';const B=res.rec||res.best;
+  const warn=res.notes.filter(n=>n.startsWith('⚠'));
+  $('summary').innerHTML=`<p><b>Recommended: ${nm(B)}</b> — ${fm(B.route.duration)} min, ${dk(B.route.distance)}, ${fmtD(B.exp.km)} in flagged areas.</p>`+[D,A,H].filter((c,i,a)=>c&&c!==B&&a.indexOf(c)===i).map(c=>`<p>${nm(c)}: ${fm(c.route.duration)} min, ${dk(c.route.distance)}, ${fmtD(c.exp.km)} in flagged areas.</p>`).join('')+(A===D&&!H?`<p class="warnl">No safer route found within your max extra time. Try raising “Max extra time for the safer route”${OPTS.hardAvoid?'':' or turning on Hard avoid'}.</p>`:'')+warn.map(w=>`<p class="warnl">${esc(w)}</p>`).join('');
+  $('summary').hidden=false;
+  if(!full)return;
+  return `Safety limit: `+DOMAINS.map(x=>`${x.n} ${T[x.k]>=0?'+':''}${T[x.k].toFixed(1)}`).join(', ')+`. Areas: ${res.allFeatures.length}, above your limit: ${res.allFeatures.filter(f=>f.properties.flag).length}, no data: ${res.allFeatures.filter(f=>f.properties.vvi.nodata).length}.\n${desc('Fastest route',D)}\n${A===D?'No safer route found within your max extra time':desc('Safer route ('+A.label+')',A)}`+(H?'\n'+desc('Safer route, '+H.label,H):'')+`\nDefault: ${nm(B)} (lowest total exposure). "Worst areas" = flagged areas with severity ≥ ${isFinite(D.worstCut)?D.worstCut.toFixed(2):'—'} (top quarter on the fastest route).`+(res.why?'\n'+res.why:'')+(res.notes.length?'\n'+res.notes.filter(n=>!n.startsWith('⚠')).join('\n'):'')+'\nSources on this route: '+[...new Set(res.best.near.flatMap(f=>Object.values(f.properties.vvi.src||{})).map(x=>x.split(' — ')[0].replace(/ \(.*$/,'')))].join('; ');}
+const pick=()=>{if(!lastRes)return;renderText(false);const c=$('pickA').checked?lastRes.avoid:$('pickH').checked&&lastRes.third?lastRes.third:lastRes.direct;lastRes.best=c;lastRes.features=c.near;
+  const u=gmapsURL(lastO,lastD,c.wps);$('gurl').value=u;$('openG').href=u;$('out').hidden=false;};
+$('pickA').onchange=pick;$('pickD').onchange=pick;$('pickH').onchange=pick;
+$('copyG').onclick=async()=>{try{await navigator.clipboard.writeText($('gurl').value);}catch{$('gurl').select();document.execCommand('copy');}st('Link copied.');};
+$('kml').onclick=()=>{const b=new Blob([toKML(lastRes,mode,th())],{type:'application/vnd.google-earth.kml+xml'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`compass-${mode}-${new Date().toISOString().slice(0,10)}.kml`;a.click();};
+// PWA: SW only over https; manifest data-URL fallback when opened as a lone file
+if(location.protocol==='https:'&&'serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+if(location.protocol==='file:'){$('mf').href='data:application/manifest+json,'+encodeURIComponent(JSON.stringify({name:'Compass',short_name:'Compass',start_url:'.',display:'standalone',background_color:'#0f172a',theme_color:'#0f172a'}));}
+}
+</script>
+</body>
+</html>
